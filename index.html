@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <!--
-  ════════════════════════════════════════════════════════════
+  ═══════════════════════════════════════════════════════════
+  هوشیار (GroqYar) — پنج ابزار هوشمند روی پلتفرم Groq
+  ▸ نسخه ایمن‌شده: CSP فعال، کلید فقط در مرورگر کاربر
+  ▸ پروکسی داخلی روی همان سایت: Vercel (api/groq.js) یا Cloudflare Worker (src/worker.js)
+  ▸ استقرار: طبق «راهنمای استقرار» داخل برنامه
+  ═══════════════════════════════════════════════════════════
 -->
 <html lang="fa" dir="rtl">
 <head>
@@ -170,6 +175,7 @@ select:focus{border-color:var(--or)}
 .tr-grid label{display:flex;flex-direction:column;gap:5px;font-size:11.5px}
 .tr-grid input{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:12.5px;outline:none;direction:ltr;color:var(--ink)}
 .tr-grid input:focus{border-color:var(--or)}
+.tr-check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;cursor:pointer}
 .tr-note{margin-top:10px;font-size:11.5px;line-height:1.9}
 .tr-status{margin:0 2px 4px;font-size:12px;color:var(--mut);text-align:center;line-height:1.9}
 .tr-actions{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:16px}
@@ -239,7 +245,7 @@ footer a:hover{color:var(--or)}
 <main>
   <section class="hero">
     <img class="hero-logo" src="https://image.qwenlm.ai/public_source/8ae712bd-68fb-4a6e-b331-68e4e0735844/1bcd08b24-c799-4d3a-939b-a3e362dfeaae.png" alt="هوشیار">
-    <h1>هوش<span>یار</span></h1>
+    <h1>هوشـ<span>یار</span></h1>
     <p>پنج ابزار هوشمند بر بستر Groq — سریع، رایگان، و کاملاً امن در مرورگر شما 🔒</p>
   </section>
 
@@ -315,7 +321,8 @@ footer a:hover{color:var(--or)}
           <label>اندازه هر قطعه (نویسه)<input type="number" id="trChunk" min="500" max="20000" step="500"></label>
           <label>تعداد تلاش مجدد هنگام خطا<input type="number" id="trRetries" min="0" max="10"></label>
         </div>
-        <p class="tr-note">متن طولانی به قطعه‌های کوچک تقسیم می‌شود و قطعه‌ها یکی‌یکی و با فاصله‌ی مناسب (۶۰ ÷ RPM ثانیه) فرستاده می‌شوند. اگر Groq خطای محدودیت (۴۲۹) بدهد، برنامه خودش صبر می‌کند و دوباره تلاش می‌کند.</p>
+        <label class="tr-check"><input type="checkbox" id="trPersist"> ذخیره‌ی پیشرفت ترجمه در همین مرورگر (برای ادامه بعد از بستن یا رفرش صفحه)</label>
+        <p class="tr-note">متن طولانی به قطعه‌های کوچک تقسیم می‌شود و قطعه‌ها یکی‌یکی و با فاصله‌ی مناسب (۶۰ ÷ RPM ثانیه) فرستاده می‌شوند. اگر Groq خطای محدودیت (۴۲۹) بدهد، برنامه خودش صبر می‌کند و دوباره تلاش می‌کند. متن مبدأ و ترجمه‌های انجام‌شده فقط در حافظه‌ی همین مرورگر (IndexedDB) نگه داشته می‌شوند و با «پاک کردن» یا «شروع از اول» حذف می‌شوند.</p>
       </details>
       <div class="progress hidden" id="trProg"><div class="bar"><i></i></div><span class="pct">0%</span></div>
       <div class="tr-status hidden" id="trStatus"></div>
@@ -400,6 +407,7 @@ footer a:hover{color:var(--or)}
 </main>
 
 <footer>
+  <b>هوشیار</b> — آماده استقرار روی <b>GitHub</b> + <b>Vercel</b> ·
   <a id="footSec">گزارش امنیت 🔒</a> · کلیدهای شما فقط در مرورگر خودتان می‌مانند
 </footer>
 
@@ -412,6 +420,7 @@ footer a:hover{color:var(--or)}
       <div class="sec-item ok">کلید API فقط در <b>localStorage مرورگر خودتان</b> ذخیره می‌شود و در هیچ پایگاه‌داده‌ای نگه‌داری نمی‌شود.</div>
       <div class="sec-item ok">درخواست‌ها از طریق پروکسی همین سایت (<span dir="ltr">api/groq.js</span> روی Vercel) به Groq می‌رسند. پروکسی کلید را فقط برای همان درخواست به کار می‌برد، ذخیره یا لاگ نمی‌کند و فقط درخواست‌هایی را می‌پذیرد که از خودِ همین سایت آمده باشند.</div>
       <div class="sec-item ok">همه ارتباط‌ها رمزنگاری‌شده (HTTPS/TLS) است و هدر CSP فقط ارتباط با همین سایت و <span dir="ltr">api.groq.com</span> را مجاز می‌کند.</div>
+      <div class="sec-item ok">پیشرفت ترجمه‌ی فایل‌های بزرگ (متن مبدأ و ترجمه) فقط در IndexedDB مرورگر خودتان ذخیره می‌شود؛ می‌توانید در تنظیمات ترجمه آن را خاموش کنید.</div>
       <div class="sec-item ok">ورودی‌ها و پاسخ‌های مدل قبل از نمایش <b>ضدعفونی (escape)</b> می‌شوند تا خطر XSS صفر باشد.</div>
       <div class="sec-item warn">کلید شما در هر درخواست از سرور Vercel عبور می‌کند. کلید شخصی را فقط روی سایتی وارد کنید که خودتان مستقر کرده‌اید یا به آن اعتماد دارید.</div>
       <div class="sec-item warn">اگر سایت بدون پروکسی (مثلاً GitHub Pages) اجرا شود، برنامه مستقیم به Groq وصل می‌شود که در ایران بدون فیلترشکن کار نمی‌کند.</div>
@@ -438,14 +447,18 @@ footer a:hover{color:var(--or)}
 <!-- مودال استقرار -->
 <div class="modal hidden" id="deployModal">
   <div class="modal-card">
-    <h3>🚀 استقرار روی GitHub + Vercel</h3>
-    <ol class="deploy-list">
-      <li>این سه فایل را در یک مخزن جدید GitHub پوش کنید: <code>index.html</code>، <code>api/groq.js</code> و <code>vercel.json</code>.</li>
-      <li>در <b dir="ltr">vercel.com</b> گزینه <code>New Project</code> را بزنید و مخزن را Import کنید.</li>
-      <li>Framework را روی <code>Other</code> بگذارید و <code>Deploy</code> را بزنید (نیازی به Environment Variable نیست).</li>
-      <li>آدرس <code>your-app.vercel.app</code> را باز کنید و کلید Groq را ثبت کنید. درخواست‌ها از سرور Vercel می‌روند و فیلترشکن لازم نیست. ✅</li>
+    <h3>🚀 استقرار (دو روش، هر کدام با پروکسی داخلی)</h3>
+    <p class="hint" style="margin-top:8px"><b>روش ۱ — Vercel</b></p>
+    <ol class="deploy-list" style="margin-top:4px">
+      <li>سه فایل <code>index.html</code>، <code>api/groq.js</code> و <code>vercel.json</code> را در یک مخزن GitHub پوش کنید.</li>
+      <li>در <b dir="ltr">vercel.com</b> مخزن را Import کنید، Framework را <code>Other</code> بگذارید و Deploy بزنید.</li>
     </ol>
-    <p class="hint" style="margin-top:10px">اگر آدرس <span dir="ltr">vercel.app</span> در شبکه شما باز نمی‌شود، یک دامنه شخصی به پروژه وصل کنید.</p>
+    <p class="hint" style="margin-top:10px"><b>روش ۲ — Cloudflare Workers</b></p>
+    <ol class="deploy-list" style="margin-top:4px">
+      <li>سه فایل <code>wrangler.jsonc</code>، <code>src/worker.js</code> و <code>public/index.html</code> را در یک مخزن GitHub پوش کنید.</li>
+      <li>در <b dir="ltr">dash.cloudflare.com</b> به Workers &amp; Pages بروید، Create → Import a repository را بزنید و مخزن را Deploy کنید (یا در ترمینال <code>npx wrangler deploy</code>).</li>
+    </ol>
+    <p class="hint" style="margin-top:10px">در هر دو روش نیازی به Environment Variable نیست و کلید را همین‌جا در برنامه ثبت می‌کنید. اگر آدرس <span dir="ltr">vercel.app</span> یا <span dir="ltr">workers.dev</span> در شبکه شما باز نمی‌شود، یک دامنه شخصی به پروژه وصل کنید.</p>
     <div class="modal-actions"><button id="deployClose" class="cta" style="margin:0">بستن</button></div>
   </div>
 </div>
@@ -651,7 +664,7 @@ $('#trFile').addEventListener('change', e => {
 });
 /* ── موتور ترجمه فایل‌های بزرگ: قطعه‌بندی + کنترل RPM + ادامه‌ی کار ── */
 const LS_TR = 'gy_tr_cfg_v1';
-const trCfg = { rpm:10, chunk:4000, retries:4 };
+const trCfg = { rpm:10, chunk:4000, retries:4, persist:true };
 try { Object.assign(trCfg, JSON.parse(localStorage.getItem(LS_TR) || '{}')); } catch(e){}
 [['trRpm','rpm',1,1000],['trChunk','chunk',500,20000],['trRetries','retries',0,10]].forEach(([id,k,lo,hi]) => {
   const el = $('#' + id); el.value = trCfg[k];
@@ -662,6 +675,76 @@ try { Object.assign(trCfg, JSON.parse(localStorage.getItem(LS_TR) || '{}')); } c
     updTrCount();
   });
 });
+
+$('#trPersist').checked = !!trCfg.persist;
+$('#trPersist').addEventListener('change', () => {
+  trCfg.persist = $('#trPersist').checked;
+  try { localStorage.setItem(LS_TR, JSON.stringify(trCfg)); } catch(e){}
+  if(!trCfg.persist) trPersistClear(); else if(trState) trPersistStart();
+});
+
+/* ذخیره‌ی پیشرفت در IndexedDB (متن مبدأ + قطعه‌ها + ترجمه‌ی هر قطعه) */
+const idb = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    if(!window.indexedDB) return rej(new Error('IndexedDB در دسترس نیست'));
+    const rq = indexedDB.open('gy_tr_db', 1);
+    rq.onupgradeneeded = () => rq.result.createObjectStore('kv');
+    rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error);
+  }));
+  const tx = async (mode, fn) => {
+    const db = await open();
+    return new Promise((res, rej) => {
+      const t = db.transaction('kv', mode), r = fn(t.objectStore('kv'));
+      t.oncomplete = () => res(r && r.result); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+    });
+  };
+  return {
+    get: k => tx('readonly', st => st.get(k)),
+    set: (k, v) => tx('readwrite', st => st.put(v, k)),
+    clear: () => tx('readwrite', st => st.clear()),
+    async outs(n){
+      const db = await open();
+      return new Promise((res, rej) => {
+        const t = db.transaction('kv', 'readonly'), st = t.objectStore('kv'), arr = new Array(n).fill(null);
+        for(let i = 0; i < n; i++) st.get('o:' + i).onsuccess = e => { if(e.target.result !== undefined) arr[i] = e.target.result; };
+        t.oncomplete = () => res(arr); t.onerror = () => rej(t.error);
+      });
+    }
+  };
+})();
+let trPersistWarned = false;
+function trPersistFail(e){
+  if(trPersistWarned) return; trPersistWarned = true;
+  showToast('ذخیره‌ی پیشرفت در این مرورگر ممکن نیست (حالت خصوصی یا فضای کم)؛ ترجمه ادامه دارد ولی بعد از بستن صفحه حفظ نمی‌شود.','warn');
+}
+async function trPersistStart(){
+  if(!trCfg.persist || !trState) return;
+  try{
+    await idb.clear();
+    await idb.set('meta', { srcLang:$('#srcLang').value, tgtLang:$('#tgtLang').value, text:$('#trSrc').value.trim(),
+      chunks: trState.chunks.map(c => ({ src:c.src, sep:c.sep })), savedAt: Date.now() });
+    for(let i = 0; i < trState.chunks.length; i++) if(trState.chunks[i].out !== null) await idb.set('o:' + i, trState.chunks[i].out);
+  }catch(e){ trPersistFail(e); }
+}
+function trPersistOut(i, out){ if(trCfg.persist) idb.set('o:' + i, out).catch(trPersistFail); }
+function trPersistClear(){ idb.clear().catch(() => {}); }
+async function trRestore(){
+  if(!trCfg.persist) return;
+  try{
+    const meta = await idb.get('meta');
+    if(!meta || !meta.chunks || !meta.chunks.length) return;
+    const outs = await idb.outs(meta.chunks.length);
+    trState = { sig:null, chunks: meta.chunks.map((c, i) => ({ src:c.src, sep:c.sep, out:outs[i] })) };
+    $('#srcLang').value = meta.srcLang; $('#tgtLang').value = meta.tgtLang; $('#trSrc').value = meta.text;
+    trState.sig = trSig();
+    renderTrOut(); updTrCount();
+    const d = trDone(), n = trState.chunks.length;
+    let when = ''; try { when = ' · ' + new Date(meta.savedAt).toLocaleString('fa-IR'); } catch(e){}
+    setTrStatus('💾 کار ذخیره‌شده‌ی قبلی بازیابی شد (' + faNum(d) + ' از ' + faNum(n) + ' قطعه' + when + ')');
+    if(d < n){ setTrProg(d, n); showToast('یک ترجمه‌ی ناتمام ذخیره شده؛ در تب ترجمه «ادامه ترجمه» را بزنید.','warn'); }
+  }catch(e){}
+}
 
 /* تقسیم متن به قطعه‌های ≤ max نویسه، بدون شکستن وسط پاراگراف/جمله (مگر ناچار) */
 function splitText(text, max){
@@ -713,7 +796,7 @@ function sleep(ms, signal, onTick){
 const fmtDur = ms => { const s = Math.max(1, Math.round(ms/1000)); return s < 60 ? faNum(s) + ' ثانیه' : faNum(Math.floor(s/60)) + ' دقیقه و ' + faNum(s % 60) + ' ثانیه'; };
 
 let trState = null, trAbort = null, trRunning = false, trLastReq = 0, trLabel = '', trDurs = [];
-const trSig = () => [$('#srcLang').value, $('#tgtLang').value, trCfg.chunk, $('#trSrc').value.trim()].join('\u0001');
+const trSig = () => [$('#srcLang').value, $('#tgtLang').value, $('#trSrc').value.trim()].join('\u0001');
 const trDone = () => trState ? trState.chunks.filter(c => c.out !== null).length : 0;
 const setTrStatus = t => { const el = $('#trStatus'); el.textContent = t; el.classList.toggle('hidden', !t); };
 function setTrProg(done, total){
@@ -746,9 +829,9 @@ $('#srcLang').addEventListener('change', trRefreshBtn);
 $('#tgtLang').addEventListener('change', trRefreshBtn);
 $('#trClear').addEventListener('click', () => {
   if(trRunning) return;
-  $('#trSrc').value = ''; $('#trOut').value = ''; trState = null; setTrStatus(''); $('#trProg').classList.add('hidden'); updTrCount();
+  $('#trSrc').value = ''; $('#trOut').value = ''; trState = null; trPersistClear(); setTrStatus(''); $('#trProg').classList.add('hidden'); updTrCount();
 });
-$('#trReset').addEventListener('click', () => { if(trRunning) return; trState = null; $('#trOut').value = ''; setTrStatus(''); $('#trProg').classList.add('hidden'); trRefreshBtn(); });
+$('#trReset').addEventListener('click', () => { if(trRunning) return; trState = null; trPersistClear(); $('#trOut').value = ''; setTrStatus(''); $('#trProg').classList.add('hidden'); trRefreshBtn(); });
 $('#trStop').addEventListener('click', () => { if(trAbort) trAbort.abort(); });
 
 /* فاصله‌ی زمانی بین درخواست‌ها بر اساس RPM */
@@ -808,6 +891,7 @@ $('#trGo').addEventListener('click', async () => {
   if(!trState || trState.sig !== sig || trDone() === trState.chunks.length){
     trState = { sig, chunks: splitText(txt, trCfg.chunk).map(p => ({ src:p.text, sep:p.sep, out:null })) };
     $('#trOut').value = '';
+    await trPersistStart();
   }
   const total = trState.chunks.length;
   trRunning = true; trAbort = new AbortController(); trDurs = []; trRefreshBtn();
@@ -821,7 +905,7 @@ $('#trGo').addEventListener('click', async () => {
       trLabel = 'قطعه ' + faNum(i + 1) + ' از ' + faNum(total) + ' · باقی‌مانده حدود ' + fmtDur(remain * Math.max(60000 / trCfg.rpm * 1.05, avg));
       setTrStatus(trLabel);
       c.out = await trCall(c.src, i > 0 ? tailCtx(trState.chunks[i - 1].src) : '', trAbort.signal, 0);
-      renderTrOut(); setTrProg(trDone(), total);
+      trPersistOut(i, c.out); renderTrOut(); setTrProg(trDone(), total);
     }
     ok = true;
   }catch(err){
@@ -970,7 +1054,7 @@ document.addEventListener('keydown', e => { if(e.key === 'Escape') $$('.modal').
 
 /* ═══════════ شروع ═══════════ */
 renderModels(); renderKeySelect(); fillLangs(); renderCats();
-updTrCount(); updSmCount(); updClCount();
+updTrCount(); updSmCount(); updClCount(); trRestore();
 if(!savedKeys.length) setTimeout(() => showToast('برای شروع، یک کلید رایگان Groq ثبت کنید 🔑','warn'), 800);
 </script>
 </body>
