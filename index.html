@@ -11,7 +11,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; img-src https: data:; connect-src 'self' https://api.groq.com; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; worker-src 'self' blob:; style-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; img-src https: data:; connect-src 'self' https://api.groq.com; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
 <title>هوشیار | دستیار هوشمند Groq</title>
 <link rel="icon" href="https://image.qwenlm.ai/public_source/8ae712bd-68fb-4a6e-b331-68e4e0735844/1bcd08b24-c799-4d3a-939b-a3e362dfeaae.png">
@@ -299,11 +299,11 @@ footer a:hover{color:var(--or)}
           <div class="pane-head">
             <span>متن مبدأ</span><span class="spacer"></span>
             <label class="mini-btn" style="cursor:pointer">📂 بارگذاری فایل
-              <input type="file" id="trFile" hidden accept=".txt,.md,.text,text/plain">
+              <input type="file" id="trFile" hidden accept=".txt,.md,.text,.docx,.pdf,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
             </label>
             <button id="trClear" class="mini-btn">پاک کردن</button>
           </div>
-          <textarea id="trSrc" dir="auto" placeholder="متن را اینجا جایگذاری کنید یا فایل متنی بارگذاری نمایید…"></textarea>
+          <textarea id="trSrc" dir="auto" placeholder="متن را اینجا جایگذاری کنید یا فایل متنی، Word (.docx) یا PDF بارگذاری نمایید…"></textarea>
           <div class="pane-foot"><span id="trCount">۰ نویسه</span></div>
         </div>
         <div class="pane">
@@ -343,7 +343,7 @@ footer a:hover{color:var(--or)}
         <div class="pane-head">
           <span>متن بلند</span><span class="spacer"></span>
           <label class="mini-btn" style="cursor:pointer">📂 بارگذاری فایل
-            <input type="file" id="smFile" hidden accept=".txt,.md,.text,text/plain">
+            <input type="file" id="smFile" hidden accept=".txt,.md,.text,.docx,.pdf,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
           </label>
           <button id="smClear" class="mini-btn">پاک کردن</button>
         </div>
@@ -425,6 +425,7 @@ footer a:hover{color:var(--or)}
       <div class="sec-item ok">درخواست‌ها از طریق پروکسی همین سایت (<span dir="ltr">api/groq.js</span> روی Vercel) به Groq می‌رسند. پروکسی کلید را فقط برای همان درخواست به کار می‌برد، ذخیره یا لاگ نمی‌کند و فقط درخواست‌هایی را می‌پذیرد که از خودِ همین سایت آمده باشند.</div>
       <div class="sec-item ok">همه ارتباط‌ها رمزنگاری‌شده (HTTPS/TLS) است و هدر CSP فقط ارتباط با همین سایت و <span dir="ltr">api.groq.com</span> را مجاز می‌کند.</div>
       <div class="sec-item ok">پیشرفت ترجمه‌ی فایل‌های بزرگ (متن مبدأ و ترجمه) فقط در IndexedDB مرورگر خودتان ذخیره می‌شود؛ می‌توانید در تنظیمات ترجمه آن را خاموش کنید.</div>
+      <div class="sec-item ok">فایل‌های Word و PDF فقط داخل مرورگر خودتان خوانده می‌شوند و جایی آپلود نمی‌شوند. اگر پوشه‌ی <span dir="ltr">vendor/</span> کنار سایت نباشد، دو کتابخانه‌ی خواندن (pdf.js و mammoth) از <span dir="ltr">cdn.jsdelivr.net</span> بارگذاری می‌شود.</div>
       <div class="sec-item ok">ورودی‌ها و پاسخ‌های مدل قبل از نمایش <b>ضدعفونی (escape)</b> می‌شوند تا خطر XSS صفر باشد.</div>
       <div class="sec-item warn">کلید شما در هر درخواست از سرور Vercel عبور می‌کند. کلید شخصی را فقط روی سایتی وارد کنید که خودتان مستقر کرده‌اید یا به آن اعتماد دارید.</div>
       <div class="sec-item warn">اگر سایت بدون پروکسی (مثلاً GitHub Pages) اجرا شود، برنامه مستقیم به Groq وصل می‌شود که در ایران بدون فیلترشکن کار نمی‌کند.</div>
@@ -663,9 +664,111 @@ function fillLangs(){
   s.value = 'en'; t.value = 'fa';
 }
 $('#swapLang').addEventListener('click', () => { const s = $('#srcLang'), t = $('#tgtLang'); const v = s.value; s.value = t.value; t.value = v; });
-$('#trFile').addEventListener('change', e => {
-  const f = e.target.files[0]; if(!f) return;
-  const rd = new FileReader(); rd.onload = () => { $('#trSrc').value = rd.result; updTrCount(); showToast('فایل «' + f.name + '» بارگذاری شد 📂','ok'); }; rd.readAsText(f); e.target.value = '';
+/* ── خواندن فایل: متنی / Word (.docx) / PDF — همه داخل مرورگر ── */
+const LIBS = {
+  mammoth: { get: () => window.mammoth, fa: 'Word', src: ['vendor/mammoth.browser.min.js', 'https://cdn.jsdelivr.net/npm/mammoth@1.4.9/mammoth.browser.min.js'] },
+  pdf:     { get: () => window.pdfjsLib || window['pdfjs-dist/build/pdf'], fa: 'PDF', src: ['vendor/pdf.min.js', 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js'] }
+};
+const PDF_WORKER_LOCAL = 'vendor/pdf.worker.min.js', PDF_WORKER_CDN = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+const libUsed = {};
+const loadScript = src => new Promise((res, rej) => {
+  const el = document.createElement('script'); el.src = src;
+  el.onload = () => res(); el.onerror = () => { el.remove(); rej(new Error('load failed: ' + src)); };
+  document.head.appendChild(el);
+});
+async function loadLib(name){
+  const L = LIBS[name]; if(L.get()) return L.get();
+  for(let i = 0; i < L.src.length; i++){
+    try { await loadScript(L.src[i]); if(L.get()){ libUsed[name] = i; return L.get(); } } catch(e){}
+  }
+  throw new Error('کتابخانه‌ی خواندن ' + L.fa + ' بارگذاری نشد. فایل‌های پوشه‌ی vendor/ را کنار index.html بگذارید، یا دسترسی به cdn.jsdelivr.net را بررسی کنید. (فایل متنی .txt همچنان کار می‌کند.)');
+}
+async function pdfWorkerSrc(){
+  if(libUsed.pdf === 0){ try { const r = await fetch(PDF_WORKER_LOCAL, { method:'HEAD' }); if(r.ok) return PDF_WORKER_LOCAL; } catch(e){} }
+  return PDF_WORKER_CDN;
+}
+
+/* بازسازی پاراگراف از آیتم‌های متن یک صفحه‌ی PDF */
+function pdfPageParagraphs(items){
+  const lines = []; let cur = '', curY = null, lastY = null, lastH = 0;
+  const flush = () => { const t = cur.replace(/\s+/g, ' ').trim(); if(t) lines.push({ t, y:curY }); cur = ''; curY = null; lastY = null; };
+  for(const it of items){
+    if(!it || typeof it.str !== 'string') continue;
+    const y = it.transform ? it.transform[5] : 0, h = it.height || lastH || 10;
+    if(lastY !== null && Math.abs(y - lastY) > Math.max(2, h * 0.5)) flush();
+    if(curY === null) curY = y;
+    cur += it.str; lastY = y; lastH = h;
+    if(it.hasEOL) flush();
+  }
+  flush();
+  const num = /^[-–—\s]*[\d۰-۹]{1,4}[-–—\s]*$/;               // شماره‌ی صفحه‌ی ابتدا/انتهای صفحه
+  if(lines.length && num.test(lines[0].t)) lines.shift();
+  if(lines.length && num.test(lines[lines.length - 1].t)) lines.pop();
+  if(!lines.length) return [];
+  const gaps = []; for(let i = 1; i < lines.length; i++){ const g = lines[i-1].y - lines[i].y; if(g > 0) gaps.push(g); }
+  gaps.sort((a, b) => a - b);
+  const typ = gaps.length ? gaps[Math.floor((gaps.length - 1) / 2)] : 12, maxLen = Math.max(...lines.map(l => l.t.length));
+  const paras = []; let para = lines[0].t;
+  for(let i = 1; i < lines.length; i++){
+    const prev = lines[i-1], l = lines[i], g = prev.y - l.y;
+    const brk = g <= 0 || g > typ * 1.5 || /^([•▪◦●■–—-]|[\d۰-۹]{1,3}[.)])\s/.test(l.t) || (/[.!?؟:…»”"]$/.test(prev.t) && prev.t.length < maxLen * 0.6);
+    if(brk){ paras.push(para); para = l.t; }
+    else if(/[A-Za-z]-$/.test(para) && /^[a-z]/.test(l.t)) para = para.slice(0, -1) + l.t;
+    else para += ' ' + l.t;
+  }
+  paras.push(para);
+  return paras;
+}
+function joinPdfPages(pages){
+  const out = [];
+  for(const paras of pages) paras.forEach((p, i) => {
+    if(i === 0 && out.length && !/[.!?؟:…»”")]$/.test(out[out.length - 1]) && /^[a-z]/.test(p)) out[out.length - 1] += ' ' + p;
+    else out.push(p);
+  });
+  return out.join('\n\n');
+}
+async function readPdf(file, onProg){
+  const lib = await loadLib('pdf');
+  lib.GlobalWorkerOptions.workerSrc = await pdfWorkerSrc();
+  let pdf;
+  try { pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported:false }).promise; }
+  catch(e){
+    if(e && e.name === 'PasswordException') throw new Error('این PDF رمزگذاری شده است؛ ابتدا رمز آن را بردارید.');
+    throw new Error('خواندن PDF ناموفق بود: ' + ((e && e.message) || e));
+  }
+  const pages = [];
+  for(let p = 1; p <= pdf.numPages; p++){
+    if(onProg) onProg('📄 خواندن PDF: صفحه ' + faNum(p) + ' از ' + faNum(pdf.numPages));
+    const tc = await (await pdf.getPage(p)).getTextContent();
+    pages.push(pdfPageParagraphs(tc.items));
+  }
+  const text = joinPdfPages(pages);
+  if(text.replace(/\s/g, '').length < 20 * pdf.numPages) throw new Error('در این PDF متن قابل انتخاب پیدا نشد؛ احتمالاً اسکن (تصویر) است و نیاز به OCR دارد.');
+  return text;
+}
+async function readFileText(file, onProg){
+  const name = file.name.toLowerCase();
+  if(file.size > 60 * 1024 * 1024) throw new Error('حجم فایل بیش از ۶۰ مگابایت است.');
+  if(name.endsWith('.docx')){
+    const m = await loadLib('mammoth');
+    const t = ((await m.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value || '').replace(/\r/g, '').trim();
+    if(!t) throw new Error('متنی در این فایل Word پیدا نشد.');
+    return t;
+  }
+  if(name.endsWith('.doc')) throw new Error('فرمت قدیمی .doc پشتیبانی نمی‌شود؛ در Word با «Save As» آن را به .docx ذخیره کنید.');
+  if(name.endsWith('.pdf')) return await readPdf(file, onProg);
+  return await file.text();
+}
+let trFileBase = '';
+$('#trFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+  if(trRunning){ showToast('تا پایان یا توقف ترجمه نمی‌توان فایل جدید بارگذاری کرد.','warn'); return; }
+  try{
+    setTrStatus('📂 در حال خواندن «' + f.name + '»…');
+    const t = await readFileText(f, setTrStatus);
+    $('#trSrc').value = t; trFileBase = f.name.replace(/\.[^.]+$/, ''); updTrCount(); setTrStatus('');
+    showToast('فایل «' + f.name + '» بارگذاری شد 📂 (' + faNum(t.length) + ' نویسه)','ok');
+  }catch(err){ setTrStatus(''); showToast(err.message,'err'); }
 });
 /* ── موتور ترجمه فایل‌های بزرگ: قطعه‌بندی + کنترل RPM + ادامه‌ی کار ── */
 const LS_TR = 'gy_tr_cfg_v2';
@@ -980,13 +1083,17 @@ $('#trGo').addEventListener('click', async () => {
 $('#trCopy').addEventListener('click', () => $('#trOut').value && copyText($('#trOut').value));
 $('#trDl').addEventListener('click', () => {
   if(!$('#trOut').value){ showToast('چیزی برای دانلود نیست.','warn'); return; }
-  downloadText('translation.txt', $('#trOut').value); showToast('فایل دانلود شد ⬇','ok');
+  downloadText(trFileBase ? trFileBase + '-translated.txt' : 'translation.txt', $('#trOut').value); showToast('فایل دانلود شد ⬇','ok');
 });
 
 /* ═══════════ خلاصه‌سازی ═══════════ */
-$('#smFile').addEventListener('change', e => {
-  const f = e.target.files[0]; if(!f) return;
-  const rd = new FileReader(); rd.onload = () => { $('#smSrc').value = rd.result; updSmCount(); showToast('فایل بارگذاری شد 📂','ok'); }; rd.readAsText(f); e.target.value = '';
+$('#smFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+  try{
+    showToast('در حال خواندن «' + f.name + '»…','warn');
+    const t = await readFileText(f);
+    $('#smSrc').value = t; updSmCount(); showToast('فایل «' + f.name + '» بارگذاری شد 📂','ok');
+  }catch(err){ showToast(err.message,'err'); }
 });
 const updSmCount = () => $('#smCount').textContent = faNum($('#smSrc').value.length) + ' نویسه';
 $('#smSrc').addEventListener('input', updSmCount);
