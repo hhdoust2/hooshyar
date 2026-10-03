@@ -1,11 +1,6 @@
 <!DOCTYPE html>
 <!--
-  ═══════════════════════════════════════════════════════════
-  گروقیار (GroqYar) — پنج ابزار هوشمند روی پلتفرم Groq
-  ▸ نسخه ایمن‌شده: CSP فعال، کلید فقط در مرورگر کاربر
-  ▸ پروکسی داخلی: api/groq.js روی Vercel (عبور از تحریم Groq بدون فیلترشکن)
-  ▸ استقرار: index.html + api/groq.js + vercel.json در GitHub → Vercel (Framework: Other) → Deploy
-  ═══════════════════════════════════════════════════════════
+  ════════════════════════════════════════════════════════════
 -->
 <html lang="fa" dir="rtl">
 <head>
@@ -13,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; img-src https: data:; connect-src 'self' https://api.groq.com; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
-<title>گروقیار | دستیار هوشمند Groq</title>
+<title>هوشیار | دستیار هوشمند Groq</title>
 <link rel="icon" href="https://image.qwenlm.ai/public_source/8ae712bd-68fb-4a6e-b331-68e4e0735844/1bcd08b24-c799-4d3a-939b-a3e362dfeaae.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/vazirmatn/400.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/vazirmatn/500.css">
@@ -223,7 +218,7 @@ footer a:hover{color:var(--or)}
 <header class="topbar">
   <div class="brand">
     <img src="https://image.qwenlm.ai/public_source/8ae712bd-68fb-4a6e-b331-68e4e0735844/1bcd08b24-c799-4d3a-939b-a3e362dfeaae.png" alt="لوگو">
-    <span>گروقیار</span>
+    <span>هوشیار</span>
     <button class="sec-badge" id="secBadge" title="گزارش امنیت">🔒 امن</button>
   </div>
   <div class="top-actions">
@@ -243,8 +238,8 @@ footer a:hover{color:var(--or)}
 
 <main>
   <section class="hero">
-    <img class="hero-logo" src="https://image.qwenlm.ai/public_source/8ae712bd-68fb-4a6e-b331-68e4e0735844/1bcd08b24-c799-4d3a-939b-a3e362dfeaae.png" alt="گروقیار">
-    <h1>گروقـ<span>یار</span></h1>
+    <img class="hero-logo" src="https://image.qwenlm.ai/public_source/8ae712bd-68fb-4a6e-b331-68e4e0735844/1bcd08b24-c799-4d3a-939b-a3e362dfeaae.png" alt="هوشیار">
+    <h1>هوش<span>یار</span></h1>
     <p>پنج ابزار هوشمند بر بستر Groq — سریع، رایگان، و کاملاً امن در مرورگر شما 🔒</p>
   </section>
 
@@ -405,14 +400,13 @@ footer a:hover{color:var(--or)}
 </main>
 
 <footer>
-  <b>گروقیار</b> — آماده استقرار روی <b>GitHub</b> + <b>Vercel</b> ·
   <a id="footSec">گزارش امنیت 🔒</a> · کلیدهای شما فقط در مرورگر خودتان می‌مانند
 </footer>
 
 <!-- مودال امنیت -->
 <div class="modal hidden" id="secModal">
   <div class="modal-card">
-    <h3>🔒 گزارش امنیت گروقیار</h3>
+    <h3>🔒 گزارش امنیت هوشیار</h3>
     <p class="hint">بله — این پروژه با چند لایه محافظتی طراحی شده است:</p>
     <div class="sec-list">
       <div class="sec-item ok">کلید API فقط در <b>localStorage مرورگر خودتان</b> ذخیره می‌شود و در هیچ پایگاه‌داده‌ای نگه‌داری نمی‌شود.</div>
@@ -611,8 +605,8 @@ async function groqRequest(messages, opts){
   }
   return full;
 }
-const SYS_BASE = 'تو «گروقیار» هستی، یک دستیار هوشمند دقیق و خوش‌بیان. به زبان کاربر (فارسی اگر فارسی نوشت) پاسخ بده و در نیاز از مارک‌داون استفاده کن.';
-const SYS_CHAT = 'تو «گروقیار» هستی، یک هم‌گفتگوی صمیمی و کمی شوخ‌طبع. پاسخ‌های کوتاه و دوستانه بده و به زبان کاربر جواب بده.';
+const SYS_BASE = 'تو «هوشیار» هستی، یک دستیار هوشمند دقیق و خوش‌بیان. به زبان کاربر (فارسی اگر فارسی نوشت) پاسخ بده و در نیاز از مارک‌داون استفاده کن.';
+const SYS_CHAT = 'تو «هوشیار» هستی، یک هم‌گفتگوی صمیمی و کمی شوخ‌طبع. پاسخ‌های کوتاه و دوستانه بده و به زبان کاربر جواب بده.';
 
 /* ═══════════ تب‌ها ═══════════ */
 $('#tabs').addEventListener('click', e => {
@@ -885,13 +879,13 @@ function addBubble(role, html){
   $('#chatBox').appendChild(d); $('#chatBox').scrollTop = $('#chatBox').scrollHeight;
   return d;
 }
-addBubble('bot', 'سلام! 👋 من گروقیارم. هر چه دوست داری بپرس تا با هم گپ بزنیم.');
+addBubble('bot', 'سلام! 👋 من هوشیارم. هر چه دوست داری بپرس تا با هم گپ بزنیم.');
 $('#chatClear').addEventListener('click', () => {
   chatHistory = [{role:'system', content:SYS_CHAT}];
   $('#chatBox').innerHTML = ''; addBubble('bot', 'گفتگو پاک شد. از نو شروع کنیم! ✨');
 });
 $('#chatDl').addEventListener('click', () => {
-  const lines = chatHistory.filter(m => m.role !== 'system').map(m => (m.role === 'user' ? 'شما: ' : 'گروقیار: ') + m.content).join('\n\n');
+  const lines = chatHistory.filter(m => m.role !== 'system').map(m => (m.role === 'user' ? 'شما: ' : 'هوشیار: ') + m.content).join('\n\n');
   if(!lines){ showToast('گفتگویی برای دانلود نیست.','warn'); return; }
   downloadText('chat-log.txt', lines); showToast('گفتگو دانلود شد ⬇','ok');
 });
