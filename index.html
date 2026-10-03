@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<!--
+  ═══════════════════════════════════════════════════════════
+══════════════════════════════
+-->
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://cdn.jsdelivr.net; font-src https://cdn.jsdelivr.net; img-src https: data:; connect-src https://api.groq.com; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<title>هوشیار | دستیار هوشمند Groq</title>
+<link rel="icon" href="https://image.qwenlm.ai/public_source/8ae712bd-68fb-4a6e-b331-68e4e0735844/1bcd08b24-c799-4d3a-939b-a3e362dfeaae.png">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/vazirmatn/400.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/vazirmatn/500.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/vazirmatn/700.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono/400.css">
+<style>
+:root{
+  --or:#F55036; --or2:#FF7A45; --ink:#1f2328; --mut:#71767d;
+  --bg:#faf8f6; --card:#ffffff; --line:#eee4de;
+  --shadow:0 10px 30px rgba(31,35,40,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Vazirmatn',system-ui,sans-serif;color:var(--ink);min-height:100vh;
+  background:radial-gradient(1100px 480px at 50% -120px,#ffe7de,transparent),var(--bg);
+}
+button{font-family:inherit}
+.hidden{display:none!important}
+/* ── نوار بالا ─────────────────────────── */
+.topbar{
+  position:sticky;top:0;z-index:50;display:flex;justify-content:space-between;align-items:center;
+  gap:12px;flex-wrap:wrap;padding:10px 20px;border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.78);backdrop-filter:blur(10px);
+}
+.brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px}
+.brand img{width:32px;height:32px;border-radius:9px}
+.sec-badge{
+  display:inline-flex;align-items:center;gap:5px;background:#ecf7ee;color:#15803d;
+  border:1px solid #cde8d2;border-radius:999px;padding:4px 11px;font-size:11px;cursor:pointer;transition:.2s;
+}
+.sec-badge:hover{box-shadow:0 4px 12px rgba(21,128,61,.18)}
+.top-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.lbl{font-size:11.5px;color:var(--mut)}
+select{
+  padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:#fff;
+  font-family:inherit;font-size:12.5px;color:var(--ink);outline:none;cursor:pointer;max-width:190px;
+}
+select:focus{border-color:var(--or)}
+.icon-btn{
+  width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:#fff;
+  display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mut);transition:.2s;
+}
+.icon-btn:hover{color:var(--or);border-color:var(--or);box-shadow:0 4px 12px rgba(245,80,54,.18)}
+.icon-btn.danger:hover{color:#c22;border-color:#c22}
+.icon-btn:disabled{opacity:.4;cursor:not-allowed}
+.ghost-btn{
+  border:1px solid var(--line);background:transparent;border-radius:12px;padding:8px 14px;
+  font-size:12.5px;color:var(--mut);cursor:pointer;transition:.2s;
+}
+.ghost-btn:hover{background:#fff;color:var(--ink)}
+/* ── هیرو ──────────────────────────────── */
+.hero{text-align:center;padding:44px 16px 4px}
+.hero-logo{width:112px;filter:drop-shadow(0 14px 24px rgba(245,80,54,.28));animation:float 4.5s ease-in-out infinite}
+.hero h1{font-size:clamp(30px,6vw,44px);font-weight:700;margin-top:10px}
+.hero h1 span{color:var(--or)}
+.hero p{color:var(--mut);font-size:14px;margin-top:6px}
+/* ── تب‌ها ─────────────────────────────── */
+.tabs{
+  margin:26px auto 8px;display:flex;gap:4px;justify-content:center;flex-wrap:wrap;
+  padding:6px;background:#fff;border:1px solid var(--line);border-radius:22px;
+  width:fit-content;max-width:95%;box-shadow:var(--shadow);
+}
+.tab{
+  border:none;background:transparent;padding:9px 16px;border-radius:16px;cursor:pointer;
+  color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:2px;transition:.25s;
+}
+.tab b{font-family:'JetBrains Mono',monospace;font-size:12.5px;direction:ltr;font-weight:400}
+.tab small{font-size:10.5px;opacity:.85}
+.tab:hover{color:var(--or)}
+.tab.active{background:linear-gradient(135deg,var(--or2),var(--or));color:#fff;box-shadow:0 6px 16px rgba(245,80,54,.35)}
+/* ── پنل‌ها ────────────────────────────── */
+.panels{max-width:980px;margin:16px auto 40px;padding:0 16px}
+.panel{display:none;animation:fadeUp .35s ease}
+.panel.active{display:block}
+.searchbar{
+  display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);
+  border-radius:999px;padding:7px 20px 7px 7px;height:58px;box-shadow:var(--shadow);transition:.25s;
+}
+.searchbar:focus-within{border-color:var(--or);box-shadow:0 12px 34px rgba(245,80,54,.16)}
+.searchbar input{flex:1;border:none;outline:none;font-family:inherit;font-size:15.5px;background:transparent}
+.s-ico{color:var(--mut);flex-shrink:0}
+.send-btn{
+  width:44px;height:44px;border-radius:50%;border:none;cursor:pointer;flex-shrink:0;
+  background:linear-gradient(135deg,var(--or2),var(--or));color:#fff;display:inline-flex;
+  align-items:center;justify-content:center;transition:.2s;box-shadow:0 6px 14px rgba(245,80,54,.35);
+}
+.send-btn:hover{transform:scale(1.07)}
+.send-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.chips{margin-top:14px;display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap;color:var(--mut);font-size:12px}
+.chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 13px;cursor:pointer;font-size:12px;color:var(--mut);transition:.2s}
+.chip:hover{border-color:var(--or);color:var(--or)}
+.answer-card{margin-top:22px;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);overflow:hidden}
+.answer-head{display:flex;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px dashed var(--line);font-size:12.5px;color:var(--mut)}
+.answer-head .spacer{flex:1}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--or);animation:pulse 1.2s infinite}
+.answer-body{padding:18px 20px;line-height:2;font-size:14.5px;overflow-wrap:anywhere}
+.answer-body code{background:#f6f1ed;border-radius:6px;padding:2px 7px;font-family:'JetBrains Mono',monospace;font-size:12.5px}
+.err{color:#b91c1c}
+.typing::after{content:'…';animation:blink 1s infinite}
+.mini-btn{font-size:11.5px;padding:6px 11px;border-radius:10px;border:1px solid var(--line);background:#fff;cursor:pointer;color:var(--mut);transition:.2s}
+.mini-btn:hover{border-color:var(--or);color:var(--or)}
+.mini-btn.primary{background:linear-gradient(135deg,var(--or2),var(--or));color:#fff;border:none}
+.mini-btn.primary:hover{color:#fff;opacity:.9}
+.lang-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.lang-row select{min-width:150px}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.duo{grid-template-columns:1fr}}
+.pane{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+.pane-head{display:flex;gap:8px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--mut)}
+.pane-head .spacer{flex:1}
+.pane textarea{
+  border:none;outline:none;resize:vertical;min-height:230px;padding:14px 16px;
+  font-family:inherit;font-size:14px;line-height:2;background:transparent;
+}
+.pane textarea[readonly]{background:#fdfaf8}
+.pane-foot{padding:8px 14px;font-size:11px;color:var(--mut);border-top:1px solid var(--line)}
+.progress{display:flex;align-items:center;gap:10px;margin:14px 2px}
+.progress .bar{flex:1;height:8px;background:#f0e8e3;border-radius:999px;overflow:hidden}
+.progress .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--or2),var(--or));border-radius:999px;transition:width .2s}
+.progress .pct{font-size:11.5px;color:var(--mut);min-width:40px;text-align:center;font-family:'JetBrains Mono',monospace}
+.cta{
+  display:block;margin:16px auto 0;padding:12px 36px;border-radius:999px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,var(--or2),var(--or));color:#fff;font-size:15px;font-weight:700;
+  box-shadow:0 8px 20px rgba(245,80,54,.35);transition:.2s;
+}
+.cta:hover{transform:translateY(-2px)}
+.cta:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.row-tools{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:6px}
+.chat-box{
+  height:400px;overflow-y:auto;background:#fff;border:1px solid var(--line);border-radius:20px;
+  box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:10px;
+}
+.msg{max-width:80%;padding:10px 15px;border-radius:16px;font-size:13.5px;line-height:1.9;animation:fadeUp .25s;overflow-wrap:anywhere}
+.msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--or2),var(--or));color:#fff;border-bottom-left-radius:5px}
+.msg.bot{align-self:flex-start;background:#f6f1ed;border-bottom-right-radius:5px}
+.chat-input{display:flex;gap:10px;align-items:center;margin-top:12px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 18px 6px 6px;height:54px;box-shadow:var(--shadow)}
+.chat-input input{flex:1;border:none;outline:none;font-family:inherit;font-size:14px;background:transparent}
+.cat-wrap{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:14px;box-shadow:var(--shadow)}
+.cat-title{font-size:12px;color:var(--mut);margin-bottom:9px}
+.cat-chips{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cat{background:#fdf6f3;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;display:flex;gap:7px;align-items:center}
+.cat button{border:none;background:none;color:#c33;cursor:pointer;font-size:13px;line-height:1}
+.cat-add{display:flex;gap:8px;margin-top:10px}
+.cat-add input{flex:1;border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-family:inherit;font-size:12.5px;outline:none}
+.cat-add input:focus{border-color:var(--or)}
+.cl-result{margin-top:16px;background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:18px 20px}
+.top-cat{font-size:17px;font-weight:700;color:var(--or)}
+.top-cat small{font-size:11.5px;color:var(--mut);font-weight:400;margin-right:8px}
+.crow{display:flex;align-items:center;gap:10px;margin-top:11px;font-size:12.5px}
+.crow .name{min-width:95px;color:var(--mut)}
+.crow .track{flex:1;height:10px;background:#f0e8e3;border-radius:999px;overflow:hidden}
+.crow .fill{height:100%;background:linear-gradient(90deg,var(--or2),var(--or));border-radius:999px;transition:width .6s ease}
+.crow .val{min-width:42px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--mut)}
+/* ── ترجمه فایل بزرگ ─────────────────── */
+.tr-set{margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 14px;font-size:12.5px;color:var(--mut)}
+.tr-set summary{cursor:pointer;user-select:none}
+.tr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+@media(max-width:620px){.tr-grid{grid-template-columns:1fr}}
+.tr-grid label{display:flex;flex-direction:column;gap:5px;font-size:11.5px}
+.tr-grid input{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:12.5px;outline:none;direction:ltr;color:var(--ink)}
+.tr-grid input:focus{border-color:var(--or)}
+.tr-note{margin-top:10px;font-size:11.5px;line-height:1.9}
+.tr-status{margin:0 2px 4px;font-size:12px;color:var(--mut);text-align:center;line-height:1.9}
+.tr-actions{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:16px}
+/* ── مودال و توست ─────────────────────── */
+.modal{position:fixed;inset:0;background:rgba(25,18,14,.45);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
+.modal-card{background:#fff;border-radius:22px;padding:24px;width:min(480px,94vw);box-shadow:0 30px 70px rgba(0,0,0,.25);animation:pop .25s ease;max-height:86vh;overflow-y:auto}
+.modal-card h3{font-size:17px;margin-bottom:6px}
+.modal-card .hint{font-size:12px;color:var(--mut);line-height:1.9}
+.modal-card input{width:100%;margin-top:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font-family:inherit;font-size:13.5px;outline:none}
+.modal-card input:focus{border-color:var(--or)}
+.modal-card input[dir="ltr"]{font-family:'JetBrains Mono',monospace;font-size:12.5px}
+.modal-actions{display:flex;gap:10px;margin-top:18px}
+.deploy-list{padding-right:18px;margin-top:12px;font-size:13px;line-height:2.1}
+.deploy-list code{background:#f6f1ed;border-radius:6px;padding:2px 7px;font-family:'JetBrains Mono',monospace;font-size:11px;direction:ltr;display:inline-block}
+/* امنیت */
+.sec-list{margin-top:14px;display:flex;flex-direction:column;gap:9px}
+.sec-item{font-size:12.5px;line-height:1.9;padding:10px 14px;border-radius:14px;border:1px solid}
+.sec-item.ok{background:#f2faf3;border-color:#d6ecda;color:#14532d}
+.sec-item.ok::before{content:'✅ ';}
+.sec-item.warn{background:#fff8ec;border-color:#f3e3c3;color:#7c4a03}
+.sec-item.warn::before{content:'⚠️ ';}
+.code-block{
+  direction:ltr;text-align:left;background:#1e2227;color:#d8e0e8;border-radius:14px;
+  padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:10.5px;line-height:1.8;
+  overflow-x:auto;margin-top:8px;white-space:pre;
+}
+.toast{
+  position:fixed;bottom:26px;right:50%;transform:translateX(50%);background:#22262b;color:#fff;
+  padding:12px 22px;border-radius:999px;font-size:13px;z-index:200;box-shadow:0 14px 34px rgba(0,0,0,.3);
+  animation:fadeUp .3s;max-width:92vw;text-align:center;
+}
+.toast.warn{background:#a16207}.toast.err{background:#b91c1c}.toast.ok{background:#15803d}
+footer{text-align:center;padding:26px 16px 36px;color:var(--mut);font-size:12px;line-height:2}
+footer b{color:var(--or)}
+footer a{color:var(--mut);cursor:pointer;text-decoration:underline dotted}
+footer a:hover{color:var(--or)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}}
+@keyframes pop{from{opacity:0;transform:scale(.92)}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes blink{50%{opacity:.2}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="https://image.qwenlm.ai/public_source/8ae712bd-68fb-4a6e-b331-68e4e0735844/1bcd08b24-c799-4d3a-939b-a3e362dfeaae.png" alt="لوگو">
+    <span>هوشیار</span>
+    <button class="sec-badge" id="secBadge" title="گزارش امنیت">🔒 امن</button>
+  </div>
+  <div class="top-actions">
+    <span class="lbl">مدل:</span>
+    <select id="modelSelect" title="مدل زیرساخت Groq"></select>
+    <span class="lbl">کلید API:</span>
+    <select id="keySelect" title="انتخاب کلید فعال"></select>
+    <button id="btnAddKey" class="icon-btn" title="ثبت کلید جدید">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button id="btnDelKey" class="icon-btn danger" title="حذف کلید فعال">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+    </button>
+    <button id="btnDeploy" class="ghost-btn">🚀 راهنمای استقرار</button>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <img class="hero-logo" src="https://image.qwenlm.ai/public_source/8ae712bd-68fb-4a6e-b331-68e4e0735844/1bcd08b24-c799-4d3a-939b-a3e362dfeaae.png" alt="هوشیار">
+    <h1>هوش<span>یار</span></h1>
+    <p>پنج ابزار هوشمند بر بستر Groq — سریع، رایگان، و کاملاً امن در مرورگر شما 🔒</p>
+  </section>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="base"><b>groq/base</b><small>پاسخ عمومی</small></button>
+    <button class="tab" data-tab="translator"><b>groq/translator</b><small>ترجمه</small></button>
+    <button class="tab" data-tab="summarizer"><b>groq/summarizer</b><small>خلاصه‌سازی</small></button>
+    <button class="tab" data-tab="chat"><b>groq/chat</b><small>گفتگو</small></button>
+    <button class="tab" data-tab="classifier"><b>groq/text-classifier</b><small>طبقه‌بندی</small></button>
+  </nav>
+
+  <section class="panels">
+
+    <!-- ══ base ══ -->
+    <div class="panel active" id="panel-base">
+      <form id="baseForm" class="searchbar">
+        <svg class="s-ico" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input id="baseInput" placeholder="سوال خود را بپرسید…" autocomplete="off">
+        <button class="send-btn" type="submit" title="ارسال">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+        </button>
+      </form>
+      <div class="chips">
+        <span>پیشنهاد:</span>
+        <button type="button" class="chip" data-q="مدل زبانی بزرگ (LLM) چیست؟ به زبان ساده توضیح بده.">مدل زبانی چیست؟</button>
+        <button type="button" class="chip" data-q="یک شعر کوتاه درباره هوش مصنوعی بسرای.">شعر کوتاه</button>
+        <button type="button" class="chip" data-q="تفاوت RAM و ROM چیست؟">تفاوت RAM و ROM</button>
+      </div>
+      <div id="baseAnswer" class="answer-card hidden">
+        <div class="answer-head">
+          <span class="dot"></span><span id="baseStatus">پاسخ</span>
+          <span class="spacer"></span>
+          <button id="baseCopy" class="mini-btn">کپی</button>
+        </div>
+        <div id="baseText" class="answer-body"></div>
+      </div>
+    </div>
+
+    <!-- ══ translator ══ -->
+    <div class="panel" id="panel-translator">
+      <div class="lang-row">
+        <select id="srcLang"></select>
+        <button id="swapLang" class="icon-btn" title="جابجایی زبان‌ها">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4M4 7h16m-4 10 4-4-4-4m4 4H4"/></svg>
+        </button>
+        <select id="tgtLang"></select>
+      </div>
+      <div class="duo">
+        <div class="pane">
+          <div class="pane-head">
+            <span>متن مبدأ</span><span class="spacer"></span>
+            <label class="mini-btn" style="cursor:pointer">📂 بارگذاری فایل
+              <input type="file" id="trFile" hidden accept=".txt,.md,.text,text/plain">
+            </label>
+            <button id="trClear" class="mini-btn">پاک کردن</button>
+          </div>
+          <textarea id="trSrc" dir="auto" placeholder="متن را اینجا جایگذاری کنید یا فایل متنی بارگذاری نمایید…"></textarea>
+          <div class="pane-foot"><span id="trCount">۰ نویسه</span></div>
+        </div>
+        <div class="pane">
+          <div class="pane-head">
+            <span>ترجمه</span><span class="spacer"></span>
+            <button id="trCopy" class="mini-btn">کپی</button>
+            <button id="trDl" class="mini-btn primary">⬇ دانلود</button>
+          </div>
+          <textarea id="trOut" dir="auto" readonly placeholder="نتیجه ترجمه اینجا نمایش داده می‌شود…"></textarea>
+        </div>
+      </div>
+      <details class="tr-set" id="trSet">
+        <summary>⚙️ تنظیمات ترجمه فایل‌های بزرگ</summary>
+        <div class="tr-grid">
+          <label>RPM مدل (درخواست در دقیقه)<input type="number" id="trRpm" min="1" max="1000"></label>
+          <label>اندازه هر قطعه (نویسه)<input type="number" id="trChunk" min="500" max="20000" step="500"></label>
+          <label>تعداد تلاش مجدد هنگام خطا<input type="number" id="trRetries" min="0" max="10"></label>
+        </div>
+        <p class="tr-note">متن طولانی به قطعه‌های کوچک تقسیم می‌شود و قطعه‌ها یکی‌یکی و با فاصله‌ی مناسب (۶۰ ÷ RPM ثانیه) فرستاده می‌شوند. اگر Groq خطای محدودیت (۴۲۹) بدهد، برنامه خودش صبر می‌کند و دوباره تلاش می‌کند.</p>
+      </details>
+      <div class="progress hidden" id="trProg"><div class="bar"><i></i></div><span class="pct">0%</span></div>
+      <div class="tr-status hidden" id="trStatus"></div>
+      <div class="tr-actions">
+        <button id="trGo" class="cta" style="margin:0">ترجمه کن</button>
+        <button id="trStop" class="ghost-btn hidden">⏹ توقف</button>
+        <button id="trReset" class="ghost-btn hidden">↺ شروع از اول</button>
+      </div>
+    </div>
+
+    <!-- ══ summarizer ══ -->
+    <div class="panel" id="panel-summarizer">
+      <div class="pane">
+        <div class="pane-head">
+          <span>متن بلند</span><span class="spacer"></span>
+          <label class="mini-btn" style="cursor:pointer">📂 بارگذاری فایل
+            <input type="file" id="smFile" hidden accept=".txt,.md,.text,text/plain">
+          </label>
+          <button id="smClear" class="mini-btn">پاک کردن</button>
+        </div>
+        <textarea id="smSrc" dir="auto" placeholder="متن طولانی خود را برای خلاصه‌سازی وارد کنید…"></textarea>
+        <div class="pane-foot"><span id="smCount">۰ نویسه</span></div>
+      </div>
+      <div class="row-tools" style="margin-top:14px">
+        <span class="lbl">سبک خلاصه:</span>
+        <select id="smLen">
+          <option value="خیلی کوتاه (۱ تا ۲ جمله)">خیلی کوتاه</option>
+          <option value="کوتاه (یک پاراگراف منسجم)" selected>کوتاه</option>
+          <option value="نکته‌محور (فهرست موردی مهم‌ترین نکات)">نکته‌محور</option>
+        </select>
+      </div>
+      <div class="progress hidden" id="smProg"><div class="bar"><i></i></div><span class="pct">0%</span></div>
+      <button id="smGo" class="cta">خلاصه کن</button>
+      <div class="pane" style="margin-top:16px">
+        <div class="pane-head">
+          <span>خلاصه</span><span class="spacer"></span>
+          <button id="smCopy" class="mini-btn">کپی</button>
+          <button id="smDl" class="mini-btn primary">⬇ دانلود</button>
+        </div>
+        <textarea id="smOut" dir="auto" readonly placeholder="خلاصه اینجا نمایش داده می‌شود…" style="min-height:150px"></textarea>
+      </div>
+    </div>
+
+    <!-- ══ chat ══ -->
+    <div class="panel" id="panel-chat">
+      <div class="row-tools" style="justify-content:flex-end;margin-bottom:10px">
+        <button id="chatDl" class="mini-btn">⬇ دانلود گفتگو</button>
+        <button id="chatClear" class="mini-btn">پاک کردن گفتگو</button>
+      </div>
+      <div id="chatBox" class="chat-box"></div>
+      <form id="chatForm" class="chat-input">
+        <input id="chatInput" placeholder="پیام خود را بنویسید…" autocomplete="off">
+        <button class="send-btn" type="submit" title="ارسال">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m7-7-7 7 7 7"/></svg>
+        </button>
+      </form>
+    </div>
+
+    <!-- ══ classifier ══ -->
+    <div class="panel" id="panel-classifier">
+      <div class="cat-wrap">
+        <div class="cat-title">دسته‌های مورد نظر خود را تعریف کنید:</div>
+        <div class="cat-chips" id="clCats"></div>
+        <div class="cat-add">
+          <input id="clAddInput" placeholder="دسته جدید… (مثلاً آموزش)">
+          <button id="clAddBtn" class="mini-btn primary">افزودن</button>
+        </div>
+      </div>
+      <div class="pane">
+        <div class="pane-head"><span>متن برای طبقه‌بندی</span><span class="spacer"></span>
+          <button id="clClear" class="mini-btn">پاک کردن</button>
+        </div>
+        <textarea id="clSrc" dir="auto" placeholder="متنی که می‌خواهید دسته‌بندی شود را وارد کنید…"></textarea>
+        <div class="pane-foot"><span id="clCount">۰ نویسه</span></div>
+      </div>
+      <div class="progress hidden" id="clProg"><div class="bar"><i></i></div><span class="pct">0%</span></div>
+      <button id="clGo" class="cta">طبقه‌بندی کن</button>
+      <div class="cl-result hidden" id="clResult"></div>
+    </div>
+
+  </section>
+</main>
+
+<footer>
+  <a id="footSec">گزارش امنیت 🔒</a> · کلیدهای شما فقط در مرورگر خودتان می‌مانند
+</footer>
+
+<!-- مودال امنیت -->
+<div class="modal hidden" id="secModal">
+  <div class="modal-card">
+    <h3>🔒 گزارش امنیت هوشیار</h3>
+    <p class="hint">بله — این پروژه با چند لایه محافظتی طراحی شده است:</p>
+    <div class="sec-list">
+      <div class="sec-item ok">کلید API فقط در <b>localStorage مرورگر خودتان</b> ذخیره می‌شود؛ هیچ سرور واسطی وجود ندارد و کلید به هیچ‌جا جز Groq ارسال نمی‌گردد.</div>
+      <div class="sec-item ok">همه درخواست‌ها مستقیم، رمزنگاری‌شده (HTTPS/TLS) و فقط به <span dir="ltr">api.groq.com</span> فرستاده می‌شوند — ارتباط با دامنه‌های دیگر توسط هدر CSP مسدود شده است.</div>
+      <div class="sec-item ok">برنامه کاملاً استاتیک است؛ با استقرار روی Vercel به‌صورت خودکار گواهی SSL رایگان می‌گیرید.</div>
+      <div class="sec-item ok">ورودی‌ها و پاسخ‌های مدل قبل از نمایش <b>ضدعفونی (escape)</b> می‌شوند تا خطر XSS صفر باشد.</div>
+      <div class="sec-item warn">اگر سایت را <b>عمومی</b> منتشر می‌کنید، کلید داخل مرورگر بازدیدکنندگان قابل مشاهده خواهد بود. برای این حالت کلید را روی پروکسی سرورلس Vercel بگذارید 👇</div>
+      <div class="sec-item warn">هرگز کلید را مستقیم داخل کد یا مخزن عمومی GitHub قرار ندهید؛ در Vercel از <b>Environment Variables</b> استفاده کنید.</div>
+    </div>
+    <p class="hint" style="margin-top:12px">نمونه پروکسی امن روی Vercel — فایل <b dir="ltr">api/groq.js</b> (کلید فقط سمت سرور می‌ماند):</p>
+<pre class="code-block">// api/groq.js — Vercel Serverless Proxy
+export default async function handler(req, res) {
+  const r = await fetch(
+    'https://api.groq.com/openai/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + process.env.GROQ_API_KEY
+      },
+      body: JSON.stringify(req.body)
+    }
+  );
+  res.status(r.status);
+  r.body.pipe(res);
+}</pre>
+    <div class="modal-actions"><button id="secClose" class="cta" style="margin:0">متوجه شدم ✅</button></div>
+  </div>
+</div>
+
+<!-- مودال کلید -->
+<div class="modal hidden" id="keyModal">
+  <div class="modal-card">
+    <h3>🔑 ثبت کلید API</h3>
+    <p class="hint">کلید رایگان خود را از <b dir="ltr">console.groq.com</b> دریافت کنید. 🔒 کلید فقط در localStorage مرورگر شما ذخیره می‌شود و به هیچ سروری جز Groq ارسال نمی‌گردد.</p>
+    <input id="keyLabel" placeholder="نام کلید (اختیاری، مثلاً: شخصی)">
+    <input id="keyValue" dir="ltr" placeholder="gsk_xxxxxxxxxxxx" autocomplete="off">
+    <div class="modal-actions">
+      <button id="keySave" class="cta" style="margin:0">ذخیره امن</button>
+      <button id="keyCancel" class="ghost-btn">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- مودال استقرار -->
+<div class="modal hidden" id="deployModal">
+  <div class="modal-card">
+    <h3>🚀 استقرار روی GitHub + Vercel</h3>
+    <ol class="deploy-list">
+      <li>این فایل را با نام <code>index.html</code> در یک مخزن جدید GitHub پوش کنید.</li>
+      <li>در <b dir="ltr">vercel.com</b> گزینه <code>New Project</code> را بزنید و مخزن را Import کنید.</li>
+      <li>Framework را روی <code>Other</code> بگذارید و <code>Deploy</code> را بزنید.</li>
+      <li>تمام! پروژه روی آدرس <code>your-app.vercel.app</code> با SSL رایگان در دسترس است. ✅</li>
+    </ol>
+    <p class="hint" style="margin-top:10px">نکته امنیتی: برای سایت عمومی، طبق «گزارش امنیت» از پروکسی سرورلس استفاده کنید تا کلید مخفی بماند.</p>
+    <div class="modal-actions"><button id="deployClose" class="cta" style="margin:0">بستن</button></div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script>
+/* ═══════════ ابزارهای عمومی ═══════════ */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const fmt = s => esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\n/g,'<br>');
+const faNum = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+
+let toastTimer = null;
+function showToast(msg, type){
+  const t = $('#toast'); t.textContent = msg; t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = 'toast hidden', 3600);
+}
+function downloadText(name, text){
+  const b = new Blob(['\ufeff' + text], {type:'text/plain;charset=utf-8'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 300);
+}
+async function copyText(txt){
+  try { await navigator.clipboard.writeText(txt); showToast('در کلیپ‌بورد کپی شد ✅','ok'); }
+  catch(e){ showToast('کپی ممکن نشد؛ دستی انتخاب کنید.','warn'); }
+}
+function makeProgress(wrap){
+  const bar = wrap.querySelector('.bar i'), pct = wrap.querySelector('.pct');
+  let val = 0, done = false;
+  wrap.classList.remove('hidden');
+  const paint = () => { bar.style.width = val + '%'; pct.textContent = Math.round(val) + '%'; };
+  const timer = setInterval(() => { if(done) return; val = Math.min(val + Math.random()*9 + 2, 92); paint(); }, 160);
+  paint();
+  return {
+    finish(){ done = true; clearInterval(timer); val = 100; paint(); setTimeout(() => wrap.classList.add('hidden'), 700); },
+    fail(){ done = true; clearInterval(timer); setTimeout(() => wrap.classList.add('hidden'), 300); }
+  };
+}
+
+/* ═══════════ مدیریت کلیدها (ذخیره فقط در مرورگر) ═══════════ */
+const LS_KEYS = 'gy_keys_v1', LS_ACTIVE = 'gy_active_v1', LS_MODEL = 'gy_model_v1';
+let savedKeys = []; try { savedKeys = JSON.parse(localStorage.getItem(LS_KEYS) || '[]'); } catch(e){ savedKeys = []; }
+let activeKeyId = localStorage.getItem(LS_ACTIVE) || '';
+
+const MODELS = [
+  {id:'qwen/qwen3.8-27b', name:'qwen/qwen3.8-27b(پیشنهادی)'},
+  {id:'openai/gpt-oss-20b', name:'openai/gpt-oss-20b (سریع)'},
+  {id:'openai/gpt-oss-120b', name:'openai/gpt-oss-120b'}
+];
+function renderModels(){
+  const sel = $('#modelSelect'); sel.innerHTML = '';
+  MODELS.forEach(m => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.name; sel.appendChild(o); });
+  const saved = localStorage.getItem(LS_MODEL);
+  sel.value = MODELS.some(m => m.id === saved) ? saved : MODELS[0].id;
+}
+const currentModel = () => $('#modelSelect').value;
+$('#modelSelect').addEventListener('change', () => localStorage.setItem(LS_MODEL, currentModel()));
+
+const maskKey = k => k && k.length > 8 ? '…' + k.slice(-4) : '****';
+function persistKeys(){ localStorage.setItem(LS_KEYS, JSON.stringify(savedKeys)); localStorage.setItem(LS_ACTIVE, activeKeyId || ''); }
+function renderKeySelect(){
+  const sel = $('#keySelect'); sel.innerHTML = '';
+  if(!savedKeys.length){ const o = document.createElement('option'); o.value = ''; o.textContent = 'کلیدی ثبت نشده'; sel.appendChild(o); }
+  savedKeys.forEach(k => { const o = document.createElement('option'); o.value = k.id; o.textContent = (k.label || 'کلید') + ' (' + maskKey(k.key) + ')'; sel.appendChild(o); });
+  if(!savedKeys.some(k => k.id === activeKeyId)) activeKeyId = savedKeys.length ? savedKeys[0].id : '';
+  sel.value = activeKeyId || '';
+  $('#btnDelKey').disabled = !savedKeys.length;
+}
+$('#keySelect').addEventListener('change', e => { activeKeyId = e.target.value; persistKeys(); });
+$('#btnAddKey').addEventListener('click', () => { $('#keyValue').value = ''; $('#keyLabel').value = ''; $('#keyModal').classList.remove('hidden'); setTimeout(() => $('#keyValue').focus(), 60); });
+$('#keyCancel').addEventListener('click', () => $('#keyModal').classList.add('hidden'));
+$('#keySave').addEventListener('click', () => {
+  const val = $('#keyValue').value.trim();
+  if(!val){ showToast('لطفاً مقدار کلید را وارد کنید.','warn'); return; }
+  if(!val.startsWith('gsk_') && !confirm('کلیدهای Groq معمولاً با gsk_ شروع می‌شوند. مطمئن هستید که می‌خواهید ذخیره کنید؟')) return;
+  const id = 'k' + Date.now();
+  savedKeys.push({ id, label: $('#keyLabel').value.trim() || ('کلید ' + faNum(savedKeys.length + 1)), key: val });
+  activeKeyId = id; persistKeys(); renderKeySelect();
+  $('#keyModal').classList.add('hidden'); showToast('کلید به‌صورت امن در مرورگر شما ذخیره شد 🔒','ok');
+});
+$('#btnDelKey').addEventListener('click', () => {
+  if(!savedKeys.length) return;
+  const cur = savedKeys.find(k => k.id === activeKeyId);
+  if(!confirm('کلید «' + (cur ? cur.label : '') + '» حذف شود؟')) return;
+  savedKeys = savedKeys.filter(k => k.id !== activeKeyId);
+  persistKeys(); renderKeySelect(); showToast('کلید حذف شد 🗑','warn');
+});
+const getActiveKey = () => { const k = savedKeys.find(x => x.id === activeKeyId); return k ? k.key : null; };
+function ensureKey(){
+  if(!getActiveKey()){ showToast('ابتدا یک کلید API ثبت کنید 🔑','warn'); $('#keyModal').classList.remove('hidden'); return false; }
+  return true;
+}
+
+/* ═══════════ ارتباط امن با Groq (فقط api.groq.com) ═══════════ */
+function parseRetryAfter(h, msg){
+  if(h && !isNaN(parseFloat(h))) return parseFloat(h) * 1000;
+  const m = /try again in\s+((?:\d+(?:\.\d+)?\s*(?:ms|m|s|h)\s*)+)/i.exec(msg || '');
+  if(!m) return 0;
+  let ms = 0;
+  m[1].replace(/(\d+(?:\.\d+)?)\s*(ms|m|s|h)/gi, (_, n, u) => { n = parseFloat(n); u = u.toLowerCase(); ms += u === 'ms' ? n : u === 's' ? n*1000 : u === 'm' ? n*60000 : n*3600000; return ''; });
+  return ms;
+}
+async function groqRequest(messages, opts){
+  opts = opts || {};
+  const key = getActiveKey();
+  if(!key) throw new Error('کلید API ثبت نشده است.');
+  const body = { model: currentModel(), messages, temperature: opts.temperature ?? 0.6, max_tokens: opts.max_tokens ?? 2048, stream: !!opts.stream };
+  if(opts.reasoning && /gpt-oss/.test(body.model)) body.reasoning_effort = opts.reasoning;
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + key },
+    body: JSON.stringify(body),
+    signal: opts.signal
+  });
+  if(!res.ok){
+    let msg = 'خطا در درخواست (' + res.status + ')';
+    try { const j = await res.json(); msg = (j.error && j.error.message) || msg; } catch(e){}
+    const err = new Error(msg); err.status = res.status;
+    err.retryAfter = parseRetryAfter(res.headers.get('retry-after'), msg);
+    throw err;
+  }
+  if(!opts.stream){
+    const j = await res.json(), ch = j.choices[0];
+    return opts.full ? { content: ch.message.content || '', finish: ch.finish_reason } : ch.message.content;
+  }
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = '', full = '';
+  while(true){
+    const r = await reader.read(); if(r.done) break;
+    buf += dec.decode(r.value, {stream:true});
+    const lines = buf.split('\n'); buf = lines.pop();
+    for(const line of lines){
+      const t = line.trim(); if(!t.startsWith('data:')) continue;
+      const data = t.slice(5).trim(); if(data === '[DONE]') continue;
+      try { const j = JSON.parse(data); const d = j.choices && j.choices[0].delta && j.choices[0].delta.content; if(d){ full += d; if(opts.onDelta) opts.onDelta(d, full); } } catch(e){}
+    }
+  }
+  return full;
+}
+const SYS_BASE = 'تو «هوشیار» هستی، یک دستیار هوشمند دقیق و خوش‌بیان. به زبان کاربر (فارسی اگر فارسی نوشت) پاسخ بده و در نیاز از مارک‌داون استفاده کن.';
+const SYS_CHAT = 'تو «هوشیار» هستی، یک هم‌گفتگوی صمیمی و کمی شوخ‌طبع. پاسخ‌های کوتاه و دوستانه بده و به زبان کاربر جواب بده.';
+
+/* ═══════════ تب‌ها ═══════════ */
+$('#tabs').addEventListener('click', e => {
+  const b = e.target.closest('.tab'); if(!b) return;
+  $$('.tab').forEach(t => t.classList.toggle('active', t === b));
+  $$('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + b.dataset.tab));
+});
+
+/* ═══════════ base ═══════════ */
+let baseLastAnswer = '';
+$('#baseForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const q = $('#baseInput').value.trim(); if(!q) return;
+  if(!ensureKey()) return;
+  const btn = ev.target.querySelector('.send-btn'); btn.disabled = true;
+  $('#baseAnswer').classList.remove('hidden');
+  $('#baseStatus').textContent = 'در حال فکر کردن…';
+  $('#baseText').innerHTML = '<span class="typing">در حال دریافت پاسخ</span>';
+  baseLastAnswer = '';
+  try{
+    await groqRequest([{role:'system',content:SYS_BASE},{role:'user',content:q}], {
+      stream:true, onDelta:(d, full) => { baseLastAnswer = full; $('#baseText').innerHTML = fmt(full); }
+    });
+    $('#baseStatus').textContent = 'پاسخ · ' + currentModel();
+  }catch(err){ $('#baseText').innerHTML = '<span class="err">' + esc(err.message) + '</span>'; $('#baseStatus').textContent = 'خطا'; }
+  btn.disabled = false;
+});
+$$('.chip').forEach(c => c.addEventListener('click', () => { $('#baseInput').value = c.dataset.q; $('#baseForm').requestSubmit(); }));
+$('#baseCopy').addEventListener('click', () => baseLastAnswer && copyText(baseLastAnswer));
+
+/* ═══════════ ترجمه ═══════════ */
+const LANGS = [['fa','فارسی'],['en','انگلیسی'],['ar','عربی'],['tr','ترکی'],['fr','فرانسوی'],['de','آلمانی'],['es','اسپانیایی'],['it','ایتالیایی'],['ru','روسی'],['zh','چینی'],['ja','ژاپنی'],['ko','کره‌ای'],['hi','هندی'],['pt','پرتغالی']];
+function fillLangs(){
+  const s = $('#srcLang'), t = $('#tgtLang');
+  LANGS.forEach(([c,n]) => { s.add(new Option(n, c)); t.add(new Option(n, c)); });
+  s.value = 'en'; t.value = 'fa';
+}
+$('#swapLang').addEventListener('click', () => { const s = $('#srcLang'), t = $('#tgtLang'); const v = s.value; s.value = t.value; t.value = v; });
+$('#trFile').addEventListener('change', e => {
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader(); rd.onload = () => { $('#trSrc').value = rd.result; updTrCount(); showToast('فایل «' + f.name + '» بارگذاری شد 📂','ok'); }; rd.readAsText(f); e.target.value = '';
+});
+/* ── موتور ترجمه فایل‌های بزرگ: قطعه‌بندی + کنترل RPM + ادامه‌ی کار ── */
+const LS_TR = 'gy_tr_cfg_v1';
+const trCfg = { rpm:10, chunk:4000, retries:4 };
+try { Object.assign(trCfg, JSON.parse(localStorage.getItem(LS_TR) || '{}')); } catch(e){}
+[['trRpm','rpm',1,1000],['trChunk','chunk',500,20000],['trRetries','retries',0,10]].forEach(([id,k,lo,hi]) => {
+  const el = $('#' + id); el.value = trCfg[k];
+  el.addEventListener('change', () => {
+    const v = Math.round(Number(el.value));
+    trCfg[k] = Math.min(hi, Math.max(lo, isNaN(v) ? trCfg[k] : v)); el.value = trCfg[k];
+    try { localStorage.setItem(LS_TR, JSON.stringify(trCfg)); } catch(e){}
+    updTrCount();
+  });
+});
+
+/* تقسیم متن به قطعه‌های ≤ max نویسه، بدون شکستن وسط پاراگراف/جمله (مگر ناچار) */
+function splitText(text, max){
+  text = text.replace(/\r\n?/g, '\n').trim();
+  if(!text) return [];
+  const units = [];
+  let sep = '';
+  for(const p of text.split(/(\n+)/)){
+    if(/^\n+$/.test(p)){ sep += p; continue; }
+    if(!p.trim()) continue;
+    let first = true;
+    const push = t => { units.push({t, sep: first ? sep : ' '}); first = false; };
+    if(p.length <= max) push(p);
+    else{
+      for(const sent of p.split(/(?<=[.!?؟…。！？])\s+/)){
+        if(sent.length <= max){ push(sent); continue; }
+        let cur = '';
+        for(let w of sent.split(/\s+/)){
+          while(w.length > max){ if(cur){ push(cur); cur = ''; } push(w.slice(0, max)); w = w.slice(max); }
+          if(cur && cur.length + 1 + w.length > max){ push(cur); cur = w; }
+          else cur = cur ? cur + ' ' + w : w;
+        }
+        if(cur) push(cur);
+      }
+    }
+    sep = '';
+  }
+  const chunks = []; let cur = null;
+  for(const u of units){
+    if(cur && cur.text.length + u.sep.length + u.t.length <= max) cur.text += u.sep + u.t;
+    else { cur = { text:u.t, sep: chunks.length ? u.sep : '' }; chunks.push(cur); }
+  }
+  return chunks;
+}
+
+const abortErr = () => { const e = new Error('متوقف شد'); e.name = 'AbortError'; return e; };
+function sleep(ms, signal, onTick){
+  return new Promise((resolve, reject) => {
+    if(signal && signal.aborted) return reject(abortErr());
+    if(ms <= 0) return resolve();
+    const end = Date.now() + ms;
+    const cleanup = () => { clearInterval(iv); if(signal) signal.removeEventListener('abort', onAbort); };
+    const onAbort = () => { cleanup(); reject(abortErr()); };
+    const iv = setInterval(() => { const left = end - Date.now(); if(left <= 0){ cleanup(); resolve(); } else if(onTick) onTick(left); }, 250);
+    if(signal) signal.addEventListener('abort', onAbort);
+    if(onTick) onTick(ms);
+  });
+}
+const fmtDur = ms => { const s = Math.max(1, Math.round(ms/1000)); return s < 60 ? faNum(s) + ' ثانیه' : faNum(Math.floor(s/60)) + ' دقیقه و ' + faNum(s % 60) + ' ثانیه'; };
+
+let trState = null, trAbort = null, trRunning = false, trLastReq = 0, trLabel = '', trDurs = [];
+const trSig = () => [$('#srcLang').value, $('#tgtLang').value, trCfg.chunk, $('#trSrc').value.trim()].join('\u0001');
+const trDone = () => trState ? trState.chunks.filter(c => c.out !== null).length : 0;
+const setTrStatus = t => { const el = $('#trStatus'); el.textContent = t; el.classList.toggle('hidden', !t); };
+function setTrProg(done, total){
+  const w = $('#trProg'); w.classList.remove('hidden');
+  const v = total ? done / total * 100 : 0;
+  w.querySelector('.bar i').style.width = v + '%'; w.querySelector('.pct').textContent = faNum(Math.round(v)) + '٪';
+}
+function renderTrOut(){
+  let out = '';
+  trState.chunks.forEach(c => { if(c.out !== null) out += (out ? c.sep : '') + c.out; });
+  $('#trOut').value = out;
+}
+function trRefreshBtn(){
+  const go = $('#trGo'), same = trState && trState.sig === trSig();
+  $('#trStop').classList.toggle('hidden', !trRunning);
+  $('#trReset').classList.toggle('hidden', trRunning || !(same && trDone() > 0));
+  go.disabled = trRunning;
+  if(trRunning) go.textContent = 'در حال ترجمه…';
+  else if(same && trDone() > 0 && trDone() < trState.chunks.length) go.textContent = 'ادامه ترجمه (' + faNum(trDone()) + ' از ' + faNum(trState.chunks.length) + ')';
+  else if(same && trDone() > 0) go.textContent = 'ترجمه دوباره';
+  else go.textContent = 'ترجمه کن';
+}
+const updTrCount = () => {
+  const t = $('#trSrc').value, n = t.trim() ? splitText(t, trCfg.chunk).length : 0;
+  $('#trCount').textContent = faNum(t.length) + ' نویسه' + (n > 1 ? ' · حدود ' + faNum(n) + ' قطعه' : '');
+  trRefreshBtn();
+};
+$('#trSrc').addEventListener('input', updTrCount);
+$('#srcLang').addEventListener('change', trRefreshBtn);
+$('#tgtLang').addEventListener('change', trRefreshBtn);
+$('#trClear').addEventListener('click', () => {
+  if(trRunning) return;
+  $('#trSrc').value = ''; $('#trOut').value = ''; trState = null; setTrStatus(''); $('#trProg').classList.add('hidden'); updTrCount();
+});
+$('#trReset').addEventListener('click', () => { if(trRunning) return; trState = null; $('#trOut').value = ''; setTrStatus(''); $('#trProg').classList.add('hidden'); trRefreshBtn(); });
+$('#trStop').addEventListener('click', () => { if(trAbort) trAbort.abort(); });
+
+/* فاصله‌ی زمانی بین درخواست‌ها بر اساس RPM */
+async function trPace(signal){
+  const gap = 60000 / Math.max(1, trCfg.rpm) * 1.05;
+  const wait = trLastReq + gap - Date.now();
+  if(wait > 0) await sleep(wait, signal, left => setTrStatus(trLabel + ' · انتظار برای رعایت RPM: ' + faNum(Math.ceil(left/1000)) + ' ثانیه'));
+  trLastReq = Date.now();
+}
+const cleanTr = t => String(t || '').replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<context>[\s\S]*?<\/context>/gi, '').replace(/<\/?text>/gi, '').trim();
+const tailCtx = s => { let t = s.slice(-400); if(s.length > 400) t = t.replace(/^\S*\s/, ''); return t; };
+
+async function trCall(text, prevCtx, signal, depth){
+  const srcN = $('#srcLang').selectedOptions[0].textContent, tgtN = $('#tgtLang').selectedOptions[0].textContent;
+  const sys = 'تو یک مترجم حرفه‌ای هستی. متنِ داخل تگ <text> را از «' + srcN + '» به «' + tgtN + '» ترجمه کن. تمام متن را کامل ترجمه کن؛ چیزی را حذف یا خلاصه نکن و توضیح نیاور. قالب‌بندی، شماره‌گذاری، علائم و خط‌های خالی را حفظ کن. اگر تگ <context> وجود داشت، فقط برای پیوستگی و یکدستی اصطلاحات است و نباید ترجمه‌اش کنی. فقط ترجمه را بدون هیچ تگی برگردان.';
+  const user = (prevCtx ? '<context>' + prevCtx + '</context>\n' : '') + '<text>\n' + text + '\n</text>';
+  const maxTok = Math.min(8192, Math.max(1024, Math.ceil(text.length * 1.3) + 1200));
+  const canSplit = depth < 3 && text.length > 300;
+  const split = async () => {
+    const parts = splitText(text, Math.floor(text.length / 2) + 50);
+    if(parts.length < 2) throw new Error('قطعه بیش از حد بزرگ است و تقسیم نمی‌شود.');
+    let out = '', ctx = prevCtx;
+    for(const p of parts){ const r = await trCall(p.text, ctx, signal, depth + 1); out += (out ? p.sep : '') + r; ctx = tailCtx(p.text); }
+    return out;
+  };
+  for(let attempt = 0; ; attempt++){
+    await trPace(signal);
+    const t0 = Date.now();
+    try{
+      const r = await groqRequest([{role:'system', content:sys},{role:'user', content:user}], { temperature:0.2, max_tokens:maxTok, full:true, signal, reasoning:'low' });
+      trDurs.push(Date.now() - t0);
+      const out = cleanTr(r.content);
+      if(r.finish === 'length' || !out){
+        if(canSplit) return await split();
+        throw new Error('خروجی مدل ناقص بود (سقف توکن). اندازه‌ی قطعه را کمتر کنید.');
+      }
+      return out;
+    }catch(err){
+      if(err.name === 'AbortError') throw err;
+      if(err.status === 413 && canSplit) return await split();
+      const retryable = err.status === 429 || err.status >= 500 || err instanceof TypeError;
+      if(!retryable || attempt >= trCfg.retries) throw err;
+      const wait = err.retryAfter || Math.min(60000, 8000 * Math.pow(2, attempt));
+      if(wait > 180000) throw new Error('سقف مصرف (احتمالاً روزانه) پر شده است؛ حدود ' + fmtDur(wait) + ' دیگر دوباره تلاش کنید یا مدل/کلید دیگری انتخاب کنید.');
+      await sleep(wait + 500, signal, left => setTrStatus(trLabel + ' · محدودیت نرخ؛ تلاش مجدد (' + faNum(attempt + 1) + ' از ' + faNum(trCfg.retries) + ') تا ' + faNum(Math.ceil(left/1000)) + ' ثانیه'));
+      trLastReq = Date.now();
+    }
+  }
+}
+
+$('#trGo').addEventListener('click', async () => {
+  if(trRunning) return;
+  const txt = $('#trSrc').value.trim();
+  if(!txt){ showToast('متنی برای ترجمه وارد نکرده‌اید.','warn'); return; }
+  if(!ensureKey()) return;
+  const sig = trSig();
+  if(!trState || trState.sig !== sig || trDone() === trState.chunks.length){
+    trState = { sig, chunks: splitText(txt, trCfg.chunk).map(p => ({ src:p.text, sep:p.sep, out:null })) };
+    $('#trOut').value = '';
+  }
+  const total = trState.chunks.length;
+  trRunning = true; trAbort = new AbortController(); trDurs = []; trRefreshBtn();
+  setTrProg(trDone(), total);
+  let ok = false;
+  try{
+    for(let i = 0; i < total; i++){
+      const c = trState.chunks[i]; if(c.out !== null) continue;
+      const remain = total - trDone();
+      const avg = trDurs.length ? trDurs.reduce((a,b) => a + b, 0) / trDurs.length : 8000;
+      trLabel = 'قطعه ' + faNum(i + 1) + ' از ' + faNum(total) + ' · باقی‌مانده حدود ' + fmtDur(remain * Math.max(60000 / trCfg.rpm * 1.05, avg));
+      setTrStatus(trLabel);
+      c.out = await trCall(c.src, i > 0 ? tailCtx(trState.chunks[i - 1].src) : '', trAbort.signal, 0);
+      renderTrOut(); setTrProg(trDone(), total);
+    }
+    ok = true;
+  }catch(err){
+    if(err.name === 'AbortError'){ setTrStatus('⏹ متوقف شد — ' + faNum(trDone()) + ' از ' + faNum(total) + ' قطعه ترجمه شده. «ادامه ترجمه» را بزنید.'); showToast('ترجمه متوقف شد؛ پیشرفت حفظ شد.','warn'); }
+    else { setTrStatus('⚠️ ' + err.message + ' — ' + faNum(trDone()) + ' از ' + faNum(total) + ' قطعه ترجمه شده؛ «ادامه ترجمه» از همین‌جا ادامه می‌دهد.'); showToast(err.message,'err'); }
+  }
+  trRunning = false; trAbort = null;
+  if(ok){
+    setTrProg(total, total); setTrStatus('✅ ترجمه کامل شد (' + faNum(total) + ' قطعه)'); showToast('ترجمه کامل شد ✅','ok');
+    setTimeout(() => { if(!trRunning) $('#trProg').classList.add('hidden'); }, 2000);
+  }
+  trRefreshBtn();
+});
+$('#trCopy').addEventListener('click', () => $('#trOut').value && copyText($('#trOut').value));
+$('#trDl').addEventListener('click', () => {
+  if(!$('#trOut').value){ showToast('چیزی برای دانلود نیست.','warn'); return; }
+  downloadText('translation.txt', $('#trOut').value); showToast('فایل دانلود شد ⬇','ok');
+});
+
+/* ═══════════ خلاصه‌سازی ═══════════ */
+$('#smFile').addEventListener('change', e => {
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader(); rd.onload = () => { $('#smSrc').value = rd.result; updSmCount(); showToast('فایل بارگذاری شد 📂','ok'); }; rd.readAsText(f); e.target.value = '';
+});
+const updSmCount = () => $('#smCount').textContent = faNum($('#smSrc').value.length) + ' نویسه';
+$('#smSrc').addEventListener('input', updSmCount);
+$('#smClear').addEventListener('click', () => { $('#smSrc').value = ''; updSmCount(); });
+$('#smGo').addEventListener('click', async () => {
+  const txt = $('#smSrc').value.trim();
+  if(!txt){ showToast('متنی برای خلاصه وارد نکرده‌اید.','warn'); return; }
+  if(!ensureKey()) return;
+  const btn = $('#smGo'); btn.disabled = true; btn.textContent = 'در حال خلاصه‌سازی…';
+  const prog = makeProgress($('#smProg'));
+  try{
+    const out = await groqRequest([
+      {role:'system', content:'تو متخصص خلاصه‌سازی هستی. متن را به فارسی و به سبک «' + $('#smLen').value + '» خلاصه کن. دقیق و منسجم باش.'},
+      {role:'user', content:txt}
+    ], {temperature:0.4});
+    $('#smOut').value = out; prog.finish(); showToast('خلاصه آماده شد ✅','ok');
+  }catch(err){ prog.fail(); showToast(err.message,'err'); }
+  btn.disabled = false; btn.textContent = 'خلاصه کن';
+});
+$('#smCopy').addEventListener('click', () => $('#smOut').value && copyText($('#smOut').value));
+$('#smDl').addEventListener('click', () => {
+  if(!$('#smOut').value){ showToast('چیزی برای دانلود نیست.','warn'); return; }
+  downloadText('summary.txt', $('#smOut').value); showToast('فایل دانلود شد ⬇','ok');
+});
+
+/* ═══════════ چت ═══════════ */
+let chatHistory = [{role:'system', content:SYS_CHAT}];
+function addBubble(role, html){
+  const d = document.createElement('div');
+  d.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
+  d.innerHTML = html;
+  $('#chatBox').appendChild(d); $('#chatBox').scrollTop = $('#chatBox').scrollHeight;
+  return d;
+}
+addBubble('bot', 'سلام! 👋 من هوشیارم. هر چه دوست داری بپرس تا با هم گپ بزنیم.');
+$('#chatClear').addEventListener('click', () => {
+  chatHistory = [{role:'system', content:SYS_CHAT}];
+  $('#chatBox').innerHTML = ''; addBubble('bot', 'گفتگو پاک شد. از نو شروع کنیم! ✨');
+});
+$('#chatDl').addEventListener('click', () => {
+  const lines = chatHistory.filter(m => m.role !== 'system').map(m => (m.role === 'user' ? 'شما: ' : 'هوشیار: ') + m.content).join('\n\n');
+  if(!lines){ showToast('گفتگویی برای دانلود نیست.','warn'); return; }
+  downloadText('chat-log.txt', lines); showToast('گفتگو دانلود شد ⬇','ok');
+});
+$('#chatForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const txt = $('#chatInput').value.trim(); if(!txt) return;
+  if(!ensureKey()) return;
+  $('#chatInput').value = '';
+  addBubble('user', esc(txt));
+  chatHistory.push({role:'user', content:txt});
+  const bubble = addBubble('bot', '<span class="typing">در حال نوشتن</span>');
+  const btn = ev.target.querySelector('.send-btn'); btn.disabled = true;
+  try{
+    await groqRequest(chatHistory, { stream:true, max_tokens:1024, onDelta:(d, full) => { bubble.innerHTML = fmt(full); $('#chatBox').scrollTop = $('#chatBox').scrollHeight; } });
+    chatHistory.push({role:'assistant', content:bubble.textContent});
+  }catch(err){ bubble.innerHTML = '<span class="err">' + esc(err.message) + '</span>'; }
+  btn.disabled = false;
+});
+
+/* ═══════════ طبقه‌بندی ═══════════ */
+let clCategories = ['فناوری','اقتصاد','ورزشی','سلامت','علمی','هنر و سرگرمی','سیاسی','آموزشی'];
+function renderCats(){
+  const wrap = $('#clCats'); wrap.innerHTML = '';
+  clCategories.forEach((c, i) => {
+    const el = document.createElement('span'); el.className = 'cat';
+    el.innerHTML = esc(c) + ' <button title="حذف دسته">×</button>';
+    el.querySelector('button').addEventListener('click', () => { clCategories.splice(i, 1); renderCats(); });
+    wrap.appendChild(el);
+  });
+}
+$('#clAddBtn').addEventListener('click', () => {
+  const v = $('#clAddInput').value.trim(); if(!v) return;
+  if(clCategories.includes(v)){ showToast('این دسته قبلاً اضافه شده.','warn'); return; }
+  if(clCategories.length >= 12){ showToast('حداکثر ۱۲ دسته مجاز است.','warn'); return; }
+  clCategories.push(v); $('#clAddInput').value = ''; renderCats();
+});
+$('#clAddInput').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); $('#clAddBtn').click(); } });
+const updClCount = () => $('#clCount').textContent = faNum($('#clSrc').value.length) + ' نویسه';
+$('#clSrc').addEventListener('input', updClCount);
+$('#clClear').addEventListener('click', () => { $('#clSrc').value = ''; updClCount(); });
+$('#clGo').addEventListener('click', async () => {
+  const txt = $('#clSrc').value.trim();
+  if(!txt){ showToast('متنی برای طبقه‌بندی وارد نکرده‌اید.','warn'); return; }
+  if(!clCategories.length){ showToast('حداقل یک دسته تعریف کنید.','warn'); return; }
+  if(!ensureKey()) return;
+  const btn = $('#clGo'); btn.disabled = true; btn.textContent = 'در حال تحلیل…';
+  const prog = makeProgress($('#clProg'));
+  try{
+    const raw = await groqRequest([
+      {role:'system', content:'تو یک طبقه‌بندی‌کننده متن هستی. متن را دقیقاً در یکی از این دسته‌ها قرار بده: ' + clCategories.join('، ') + '. فقط و فقط یک JSON به این قالب برگردان: {"category":"نام دسته","scores":{"دسته":امتیاز 0 تا 100}}'},
+      {role:'user', content:txt}
+    ], {temperature:0.2});
+    let parsed = null;
+    try { parsed = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch(e){}
+    const box = $('#clResult'); box.classList.remove('hidden');
+    if(parsed && parsed.category){
+      let html = '<div class="top-cat">🏷 دسته تشخیص‌داده‌شده: ' + esc(parsed.category) + '<small>' + esc(currentModel()) + '</small></div>';
+      const scores = parsed.scores || {};
+      const entries = Object.entries(scores).sort((a,b) => b[1] - a[1]);
+      entries.forEach(([name, val]) => {
+        html += '<div class="crow"><span class="name">' + esc(name) + '</span><span class="track"><span class="fill" style="width:' + Math.min(val,100) + '%"></span></span><span class="val">' + faNum(val) + '٪</span></div>';
+      });
+      html += '<div style="margin-top:14px"><button class="mini-btn primary" id="clDlBtn">⬇ دانلود نتیجه</button></div>';
+      box.innerHTML = html;
+      $('#clDlBtn').addEventListener('click', () => downloadText('classification.txt', 'دسته: ' + parsed.category + '\n\n' + entries.map(([n,v]) => n + ': ' + v + '%').join('\n')));
+    } else {
+      box.innerHTML = '<div class="top-cat">نتیجه خام مدل:</div><div class="answer-body" style="padding:12px 0 0">' + fmt(raw) + '</div>';
+    }
+    prog.finish(); showToast('طبقه‌بندی انجام شد ✅','ok');
+  }catch(err){ prog.fail(); showToast(err.message,'err'); }
+  btn.disabled = false; btn.textContent = 'طبقه‌بندی کن';
+});
+
+/* ═══════════ مودال‌ها ═══════════ */
+$('#btnDeploy').addEventListener('click', () => $('#deployModal').classList.remove('hidden'));
+$('#deployClose').addEventListener('click', () => $('#deployModal').classList.add('hidden'));
+$('#secBadge').addEventListener('click', () => $('#secModal').classList.remove('hidden'));
+$('#footSec').addEventListener('click', () => $('#secModal').classList.remove('hidden'));
+$('#secClose').addEventListener('click', () => $('#secModal').classList.add('hidden'));
+$$('.modal').forEach(m => m.addEventListener('click', e => { if(e.target === m) m.classList.add('hidden'); }));
+document.addEventListener('keydown', e => { if(e.key === 'Escape') $$('.modal').forEach(m => m.classList.add('hidden')); });
+
+/* ═══════════ شروع ═══════════ */
+renderModels(); renderKeySelect(); fillLangs(); renderCats();
+updTrCount(); updSmCount(); updClCount();
+if(!savedKeys.length) setTimeout(() => showToast('برای شروع، یک کلید رایگان Groq ثبت کنید 🔑','warn'), 800);
+</script>
+</body>
+</html>
