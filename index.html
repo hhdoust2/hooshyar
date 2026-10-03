@@ -665,27 +665,41 @@ function fillLangs(){
 }
 $('#swapLang').addEventListener('click', () => { const s = $('#srcLang'), t = $('#tgtLang'); const v = s.value; s.value = t.value; t.value = v; });
 /* ── خواندن فایل: متنی / Word (.docx) / PDF — همه داخل مرورگر ── */
-const LIBS = {
-  mammoth: { get: () => window.mammoth, fa: 'Word', src: ['vendor/mammoth.browser.min.js', 'https://cdn.jsdelivr.net/npm/mammoth@1.4.9/mammoth.browser.min.js'] },
-  pdf:     { get: () => window.pdfjsLib || window['pdfjs-dist/build/pdf'], fa: 'PDF', src: ['vendor/pdf.min.js', 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js'] }
-};
-const PDF_WORKER_LOCAL = 'vendor/pdf.worker.min.js', PDF_WORKER_CDN = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-const libUsed = {};
+const MAMMOTH_SRC = ['vendor/mammoth.browser.min.js', 'https://cdn.jsdelivr.net/npm/mammoth@1.4.9/mammoth.browser.min.js'];
 const loadScript = src => new Promise((res, rej) => {
   const el = document.createElement('script'); el.src = src;
   el.onload = () => res(); el.onerror = () => { el.remove(); rej(new Error('load failed: ' + src)); };
   document.head.appendChild(el);
 });
-async function loadLib(name){
-  const L = LIBS[name]; if(L.get()) return L.get();
-  for(let i = 0; i < L.src.length; i++){
-    try { await loadScript(L.src[i]); if(L.get()){ libUsed[name] = i; return L.get(); } } catch(e){}
-  }
-  throw new Error('کتابخانه‌ی خواندن ' + L.fa + ' بارگذاری نشد. فایل‌های پوشه‌ی vendor/ را کنار index.html بگذارید، یا دسترسی به cdn.jsdelivr.net را بررسی کنید. (فایل متنی .txt همچنان کار می‌کند.)');
+async function loadMammoth(){
+  if(window.mammoth) return window.mammoth;
+  for(const src of MAMMOTH_SRC){ try { await loadScript(src); if(window.mammoth) return window.mammoth; } catch(e){} }
+  throw new Error('کتابخانه‌ی خواندن Word بارگذاری نشد. فایل mammoth.browser.min.js را در پوشه‌ی vendor/ کنار index.html بگذارید، یا دسترسی به cdn.jsdelivr.net را بررسی کنید. (فایل متنی .txt همچنان کار می‌کند.)');
 }
-async function pdfWorkerSrc(){
-  if(libUsed.pdf === 0){ try { const r = await fetch(PDF_WORKER_LOCAL, { method:'HEAD' }); if(r.ok) return PDF_WORKER_LOCAL; } catch(e){} }
-  return PDF_WORKER_CDN;
+
+/* pdf.js: هر دو نسل پشتیبانی می‌شود —
+   نسخه‌ی جدید (۴ به بعد، ماژول ES با پسوند .mjs) و نسخه‌ی قدیمی ۳ (اسکریپت معمولی با پسوند .js).
+   ترتیب تلاش: فایل‌های محلی vendor/ ← نسخه‌ی جدید از CDN ← نسخه‌ی قدیمی از CDN.
+   اگر کتابخانه‌ای بالا نیامد یا روی این مرورگر اجرا نشد، خودکار نفر بعدی امتحان می‌شود. */
+const CDN_PDF_NEW = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.296/build/';
+const CDN_PDF_OLD = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/';
+const PDF_CANDIDATES = [
+  { name:'vendor-esm', kind:'esm', lib:'vendor/pdf.min.mjs', worker:'vendor/pdf.worker.min.mjs', local:true },
+  { name:'vendor-umd', kind:'umd', lib:'vendor/pdf.min.js',  worker:'vendor/pdf.worker.min.js',  local:true },
+  { name:'cdn-esm',    kind:'esm', lib:CDN_PDF_NEW + 'pdf.min.mjs', worker:CDN_PDF_NEW + 'pdf.worker.min.mjs' },
+  { name:'cdn-umd',    kind:'umd', lib:CDN_PDF_OLD + 'pdf.min.js',  worker:CDN_PDF_OLD + 'pdf.worker.min.js' }
+];
+const pdfLibCache = {};
+const dynImport = u => import(u);
+async function loadPdfCandidate(c){
+  if(pdfLibCache[c.name]) return pdfLibCache[c.name];
+  if(c.local){ const r = await fetch(c.worker, { method:'HEAD' }); if(!r.ok) throw new Error('worker missing'); }
+  let lib;
+  if(c.kind === 'esm'){ const m = await dynImport(new URL(c.lib, location.href).href); lib = m.getDocument ? m : m.default; }
+  else { await loadScript(c.lib); lib = window.pdfjsLib || window['pdfjs-dist/build/pdf']; }
+  if(!lib || !lib.getDocument || !lib.GlobalWorkerOptions) throw new Error('bad pdf.js build');
+  lib.GlobalWorkerOptions.workerSrc = new URL(c.worker, location.href).href;
+  return pdfLibCache[c.name] = lib;
 }
 
 /* بازسازی پاراگراف از آیتم‌های متن یک صفحه‌ی PDF */
@@ -727,30 +741,43 @@ function joinPdfPages(pages){
   });
   return out.join('\n\n');
 }
-async function readPdf(file, onProg){
-  const lib = await loadLib('pdf');
-  lib.GlobalWorkerOptions.workerSrc = await pdfWorkerSrc();
+const fatalErr = msg => { const e = new Error(msg); e.fatal = true; return e; };
+async function extractPdfText(lib, data, onProg){
   let pdf;
-  try { pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), isEvalSupported:false }).promise; }
+  try { pdf = await lib.getDocument({ data, isEvalSupported:false }).promise; }
   catch(e){
-    if(e && e.name === 'PasswordException') throw new Error('این PDF رمزگذاری شده است؛ ابتدا رمز آن را بردارید.');
-    throw new Error('خواندن PDF ناموفق بود: ' + ((e && e.message) || e));
+    if(e && e.name === 'PasswordException') throw fatalErr('این PDF رمزگذاری شده است؛ ابتدا رمز آن را بردارید.');
+    throw e;
   }
-  const pages = [];
-  for(let p = 1; p <= pdf.numPages; p++){
-    if(onProg) onProg('📄 خواندن PDF: صفحه ' + faNum(p) + ' از ' + faNum(pdf.numPages));
-    const tc = await (await pdf.getPage(p)).getTextContent();
-    pages.push(pdfPageParagraphs(tc.items));
+  try{
+    const pages = [];
+    for(let p = 1; p <= pdf.numPages; p++){
+      if(onProg) onProg('📄 خواندن PDF: صفحه ' + faNum(p) + ' از ' + faNum(pdf.numPages));
+      const tc = await (await pdf.getPage(p)).getTextContent();
+      pages.push(pdfPageParagraphs(tc.items));
+    }
+    const text = joinPdfPages(pages);
+    if(text.replace(/\s/g, '').length < 20 * pdf.numPages) throw fatalErr('در این PDF متن قابل انتخاب پیدا نشد؛ احتمالاً اسکن (تصویر) است و نیاز به OCR دارد.');
+    return text;
+  } finally { try { await pdf.destroy(); } catch(e){} }
+}
+async function readPdf(file, onProg){
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let loadedAny = false, lastErr = null;
+  for(const c of PDF_CANDIDATES){
+    let lib; try { lib = await loadPdfCandidate(c); } catch(e){ continue; }
+    loadedAny = true;
+    try { return await extractPdfText(lib, bytes.slice(), onProg); }     // کپی: pdf.js بافر را به worker منتقل می‌کند
+    catch(e){ if(e && e.fatal) throw e; lastErr = e; }
   }
-  const text = joinPdfPages(pages);
-  if(text.replace(/\s/g, '').length < 20 * pdf.numPages) throw new Error('در این PDF متن قابل انتخاب پیدا نشد؛ احتمالاً اسکن (تصویر) است و نیاز به OCR دارد.');
-  return text;
+  if(!loadedAny) throw new Error('کتابخانه‌ی خواندن PDF بارگذاری نشد. فایل‌های pdf.js را در پوشه‌ی vendor/ کنار index.html بگذارید (راهنما: vendor/README.txt)، یا دسترسی به cdn.jsdelivr.net را بررسی کنید. (فایل متنی .txt همچنان کار می‌کند.)');
+  throw new Error('خواندن PDF ناموفق بود: ' + ((lastErr && lastErr.message) || lastErr));
 }
 async function readFileText(file, onProg){
   const name = file.name.toLowerCase();
   if(file.size > 60 * 1024 * 1024) throw new Error('حجم فایل بیش از ۶۰ مگابایت است.');
   if(name.endsWith('.docx')){
-    const m = await loadLib('mammoth');
+    const m = await loadMammoth();
     const t = ((await m.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value || '').replace(/\r/g, '').trim();
     if(!t) throw new Error('متنی در این فایل Word پیدا نشد.');
     return t;
