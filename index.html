@@ -817,7 +817,7 @@ $('#trFile').addEventListener('change', async e => {
 });
 /* ── موتور ترجمه فایل‌های بزرگ: قطعه‌بندی + کنترل RPM + ادامه‌ی کار ── */
 const LS_TR = 'gy_tr_cfg_v2';
-const trCfg = { rpm:30, chunk:1500, retries:4, persist:true, tpm:8000, tpd:200000 };
+const trCfg = { rpm:30, chunk:1500, retries:4, persist:true, tpm:7000, tpd:200000 };
 try { Object.assign(trCfg, JSON.parse(localStorage.getItem(LS_TR) || '{}')); } catch(e){}
 [['trRpm','rpm',1,1000],['trTpm','tpm',1000,10000000],['trTpd','tpd',10000,1000000000],['trChunk','chunk',500,20000],['trRetries','retries',0,10]].forEach(([id,k,lo,hi]) => {
   const el = $('#' + id); el.value = trCfg[k];
