@@ -359,7 +359,13 @@ footer a:hover{color:var(--or)}
         </select>
       </div>
       <div class="progress hidden" id="smProg"><div class="bar"><i></i></div><span class="pct">0%</span></div>
-      <button id="smGo" class="cta">خلاصه کن</button>
+      <div class="tr-status hidden" id="smStatus"></div>
+      <div class="tr-actions">
+        <button id="smGo" class="cta" style="margin:0">خلاصه کن</button>
+        <button id="smStop" class="ghost-btn hidden">⏹ توقف</button>
+        <button id="smReset" class="ghost-btn hidden">↺ شروع از اول</button>
+      </div>
+      <div class="tr-usage" id="smUsage"></div>
       <div class="pane" style="margin-top:16px">
         <div class="pane-head">
           <span>خلاصه</span><span class="spacer"></span>
@@ -817,7 +823,7 @@ $('#trFile').addEventListener('change', async e => {
 });
 /* ── موتور ترجمه فایل‌های بزرگ: قطعه‌بندی + کنترل RPM + ادامه‌ی کار ── */
 const LS_TR = 'gy_tr_cfg_v2';
-const trCfg = { rpm:30, chunk:1500, retries:4, persist:true, tpm:7000, tpd:200000 };
+const trCfg = { rpm:30, chunk:1500, retries:4, persist:true, tpm:8000, tpd:200000 };
 try { Object.assign(trCfg, JSON.parse(localStorage.getItem(LS_TR) || '{}')); } catch(e){}
 [['trRpm','rpm',1,1000],['trTpm','tpm',1000,10000000],['trTpd','tpd',10000,1000000000],['trChunk','chunk',500,20000],['trRetries','retries',0,10]].forEach(([id,k,lo,hi]) => {
   const el = $('#' + id); el.value = trCfg[k];
@@ -913,9 +919,9 @@ function recordUsage(u){
   renderUsage();
 }
 function renderUsage(){
-  const el = $('#trUsage'); if(!el) return;
   const u = usedToday(), pct = Math.min(100, Math.round(u / trCfg.tpd * 100));
-  el.textContent = '📊 مصرف ۲۴ ساعت اخیر در این مرورگر: ' + fmtNum(u) + ' از ' + fmtNum(trCfg.tpd) + ' توکن (' + faNum(pct) + '٪) — مصرف خارج از این برنامه یا کلیدهای دیگر شمرده نمی‌شود';
+  const txt0 = '📊 مصرف ۲۴ ساعت اخیر در این مرورگر: ' + fmtNum(u) + ' از ' + fmtNum(trCfg.tpd) + ' توکن (' + faNum(pct) + '٪) — مصرف خارج از این برنامه یا کلیدهای دیگر شمرده نمی‌شود';
+  ['#trUsage', '#smUsage'].forEach(id => { const el = $(id); if(el) el.textContent = txt0; });
 }
 
 /* تقسیم متن به قطعه‌های ≤ max نویسه، بدون شکستن وسط پاراگراف/جمله (مگر ناچار) */
@@ -1008,10 +1014,11 @@ $('#trReset').addEventListener('click', () => { if(trRunning) return; trState = 
 $('#trStop').addEventListener('click', () => { if(trAbort) trAbort.abort(); });
 
 /* فاصله‌ی زمانی بین درخواست‌ها بر اساس RPM */
-async function trPace(signal){
+const trSay = m => setTrStatus(trLabel + ' · ' + m);
+async function trPace(signal, say){
   const gap = 60000 / Math.max(1, trCfg.rpm) * 1.05;
   const wait = trLastReq + gap - Date.now();
-  if(wait > 0) await sleep(wait, signal, left => setTrStatus(trLabel + ' · انتظار برای رعایت RPM: ' + faNum(Math.ceil(left/1000)) + ' ثانیه'));
+  if(wait > 0) await sleep(wait, signal, left => (say || trSay)('انتظار برای رعایت RPM: ' + faNum(Math.ceil(left/1000)) + ' ثانیه'));
   trLastReq = Date.now();
 }
 
@@ -1019,14 +1026,14 @@ async function trPace(signal){
    و اگر هدر x-ratelimit-remaining-tokens نشان دهد Groq مصرف بیشتری می‌بیند، همان لحاظ می‌شود (هرگز خوش‌بینانه‌تر نمی‌شود) */
 let trLedger = [];
 const trUsedNow = now => { trLedger = trLedger.filter(e => now - e.t < 60000); return trLedger.reduce((a, e) => a + e.n, 0); };
-async function trTpmWait(R, signal){
+async function trTpmWait(R, signal, say){
   const limit = trCfg.tpm * 0.95, need = Math.min(R, limit);
   for(;;){
     const now = Date.now(), used = trUsedNow(now);
     if(used + need <= limit) return;
     let free = used, wait = 0;
     for(const e of trLedger){ free -= e.n; wait = e.t + 60000 - now; if(free + need <= limit) break; }
-    await sleep(wait + 300, signal, left => setTrStatus(trLabel + ' · انتظار برای سهم توکن در دقیقه (TPM): ' + faNum(Math.ceil(left/1000)) + ' ثانیه'));
+    await sleep(wait + 300, signal, left => (say || trSay)('انتظار برای سهم توکن در دقیقه (TPM): ' + faNum(Math.ceil(left/1000)) + ' ثانیه'));
   }
 }
 const trCharge = R => { const e = { t:Date.now(), n:R }; trLedger.push(e); return e; };
@@ -1137,31 +1144,155 @@ $('#smFile').addEventListener('change', async e => {
   try{
     showToast('در حال خواندن «' + f.name + '»…','warn');
     const t = await readFileText(f);
-    $('#smSrc').value = t; updSmCount(); showToast('فایل «' + f.name + '» بارگذاری شد 📂' + (lastFixedForms ? ' · متن فارسی/عربی اصلاح شد ✅' : ''),'ok');
+    $('#smSrc').value = t; smFileBase = f.name.replace(/\.[^.]+$/, ''); updSmCount(); showToast('فایل «' + f.name + '» بارگذاری شد 📂' + (lastFixedForms ? ' · متن فارسی/عربی اصلاح شد ✅' : ''),'ok');
   }catch(err){ showToast(err.message,'err'); }
 });
-const updSmCount = () => $('#smCount').textContent = faNum($('#smSrc').value.length) + ' نویسه';
+/* ── خلاصه‌سازی متن‌های بلند (map-reduce): قطعه‌ها را جدا خلاصه می‌کند، بعد خلاصه‌ها را یکی می‌کند ── */
+const SM_CHUNK = 6000, SM_REDUCE_TOK = 4500, SM_MAX_LEVELS = 4;
+let smState = null, smAbort = null, smRunning = false, smLabel = '', smFileBase = '';
+const smStats = { durs:[], reqs:[] };
+const setSmStatus = t => { const el = $('#smStatus'); el.textContent = t; el.classList.toggle('hidden', !t); };
+const smSay = m => setSmStatus(smLabel + ' · ' + m);
+function setSmProg(v){
+  const w = $('#smProg'); w.classList.remove('hidden');
+  w.querySelector('.bar i').style.width = v + '%'; w.querySelector('.pct').textContent = faNum(Math.round(v)) + '٪';
+}
+const smSig = () => $('#smSrc').value.trim();
+const smDirect = txt => estTok(txt) <= SM_REDUCE_TOK;
+const smLevelDone = lv => lv.chunks.filter(c => c.out !== null).length;
+function smRefreshBtn(){
+  const go = $('#smGo'), same = smState && smState.sig === smSig(), started = same && (smState.final !== null || smState.levels.some(l => smLevelDone(l) > 0));
+  $('#smStop').classList.toggle('hidden', !smRunning);
+  $('#smReset').classList.toggle('hidden', smRunning || !started);
+  go.disabled = smRunning;
+  if(smRunning) go.textContent = 'در حال خلاصه‌سازی…';
+  else if(same && smState.final !== null) go.textContent = 'خلاصه دوباره (با سبک فعلی)';
+  else if(same && started){ const lv = smState.levels[smState.levels.length - 1]; go.textContent = 'ادامه خلاصه‌سازی (مرحله ' + faNum(smState.levels.length) + ': ' + faNum(smLevelDone(lv)) + ' از ' + faNum(lv.chunks.length) + ')'; }
+  else go.textContent = 'خلاصه کن';
+}
+const updSmCount = () => {
+  const t = $('#smSrc').value.trim(), n = t ? splitText(t, SM_CHUNK).length : 0;
+  $('#smCount').textContent = faNum($('#smSrc').value.length) + ' نویسه' + (t ? (smDirect(t) ? ' · یک درخواست' : ' · حدود ' + faNum(n) + ' قطعه (خلاصه‌سازی چندمرحله‌ای)') : '');
+  smRefreshBtn();
+};
 $('#smSrc').addEventListener('input', updSmCount);
-$('#smClear').addEventListener('click', () => { $('#smSrc').value = ''; updSmCount(); });
+$('#smLen').addEventListener('change', smRefreshBtn);
+function smResetAll(){ smState = null; $('#smOut').value = ''; setSmStatus(''); $('#smProg').classList.add('hidden'); smRefreshBtn(); }
+$('#smClear').addEventListener('click', () => { if(smRunning) return; $('#smSrc').value = ''; smFileBase = ''; smResetAll(); updSmCount(); });
+$('#smReset').addEventListener('click', () => { if(!smRunning) smResetAll(); });
+$('#smStop').addEventListener('click', () => { if(smAbort) smAbort.abort(); });
+
+/* یک درخواست با رعایت RPM/TPM و تلاش مجدد؛ اگر درخواست بیش از حد بزرگ بود خطای tooLarge می‌دهد */
+async function pacedCall(messages, maxTok, signal, say, temp, stats){
+  const R = messages.reduce((a, m) => a + estTok(m.content), 0) + maxTok;
+  for(let attempt = 0; ; attempt++){
+    await trPace(signal, say);
+    await trTpmWait(R, signal, say);
+    trLastReq = Date.now();
+    const entry = trCharge(R), t0 = Date.now();
+    try{
+      const r = await groqRequest(messages, { temperature:temp, max_tokens:maxTok, full:true, signal, reasoning:'low' });
+      if(stats){ stats.durs.push(Date.now() - t0); stats.reqs.push(R); }
+      trHeaderSync(r.headers);
+      const out = cleanTr(r.content);
+      if(!out) throw new Error('خروجی مدل خالی بود؛ دوباره امتحان کنید یا مدل دیگری انتخاب کنید.');
+      return out;
+    }catch(err){
+      trLedger = trLedger.filter(e => e !== entry);
+      if(err.name === 'AbortError') throw err;
+      if(err.status === 413){ err.tooLarge = true; throw err; }
+      const retryable = err.status === 429 || err.status >= 500 || err.network;
+      if(!retryable || attempt >= trCfg.retries) throw err;
+      const wait = err.retryAfter || Math.min(60000, 8000 * Math.pow(2, attempt));
+      if(wait > 180000) throw new Error('سقف مصرف (احتمالاً روزانه) پر شده است؛ حدود ' + fmtDur(wait) + ' دیگر دوباره تلاش کنید، یا مدل دیگری را انتخاب کنید و «ادامه خلاصه‌سازی» را بزنید (پیشرفت حفظ شده است).');
+      await sleep(wait + 500, signal, left => say('محدودیت نرخ؛ تلاش مجدد (' + faNum(attempt + 1) + ' از ' + faNum(trCfg.retries) + ') تا ' + faNum(Math.ceil(left/1000)) + ' ثانیه'));
+      trLastReq = Date.now();
+    }
+  }
+}
+const SM_SYS_MAP = 'تو متخصص خلاصه‌سازی هستی. متن زیر «بخشی از یک متن بلندتر» است. آن را به فارسی و فشرده خلاصه کن (حدود یک‌پنجم طول)؛ مهم‌ترین مطالب، نام‌ها، اعداد و اصطلاحات کلیدی را نگه دار، چیزی از خودت اضافه نکن و مقدمه یا توضیح نیاور.';
+async function smMap(src, signal, depth){
+  const maxTok = Math.min(1200, Math.max(400, Math.ceil(estTok(src) * 0.35)));
+  try { return await pacedCall([{role:'system', content:SM_SYS_MAP},{role:'user', content:src}], maxTok, signal, smSay, 0.3, smStats); }
+  catch(err){
+    if(err.tooLarge && depth < 3 && src.length > 600){
+      const parts = splitText(src, Math.floor(src.length / 2) + 50);
+      if(parts.length > 1){ let out = ''; for(const p of parts) out += (out ? '\n' : '') + await smMap(p.text, signal, depth + 1); return out; }
+    }
+    throw err;
+  }
+}
+async function smFinal(text, signal, partial){
+  const style = $('#smLen').value;
+  const sys = partial
+    ? 'تو متخصص خلاصه‌سازی هستی. متن زیر مجموعه‌ی خلاصه‌های بخش‌های پیاپیِ یک متن بلند است. آن را به یک خلاصه‌ی واحد، منسجم و بدون تکرار به فارسی و به سبک «' + style + '» تبدیل کن. فقط خلاصه را بنویس.'
+    : 'تو متخصص خلاصه‌سازی هستی. متن را به فارسی و به سبک «' + style + '» خلاصه کن. دقیق و منسجم باش.';
+  try { return await pacedCall([{role:'system', content:sys},{role:'user', content:text}], 1500, signal, smSay, 0.4, smStats); }
+  catch(err){ if(err.tooLarge) throw new Error('متن میانی هنوز برای مدل بزرگ است؛ اندازه‌ی متن را کمتر کنید یا مدلی با سقف ورودی بیشتر انتخاب کنید.'); throw err; }
+}
+const smEtaLabel = (head, remainCalls) => {
+  const avg = smStats.durs.length ? smStats.durs.reduce((a, b) => a + b, 0) / smStats.durs.length : 8000;
+  const avgR = smStats.reqs.length ? smStats.reqs.reduce((a, b) => a + b, 0) / smStats.reqs.length : 4000;
+  const per = Math.max(60000 / trCfg.rpm * 1.05, avg, avgR * 60000 / (trCfg.tpm * 0.95));
+  return head + ' · باقی‌مانده حدود ' + fmtDur(remainCalls * per);
+};
+
 $('#smGo').addEventListener('click', async () => {
+  if(smRunning) return;
   const txt = $('#smSrc').value.trim();
   if(!txt){ showToast('متنی برای خلاصه وارد نکرده‌اید.','warn'); return; }
   if(!ensureKey()) return;
-  const btn = $('#smGo'); btn.disabled = true; btn.textContent = 'در حال خلاصه‌سازی…';
-  const prog = makeProgress($('#smProg'));
+  const sig = smSig();
+  if(!smState || smState.sig !== sig){
+    smState = smDirect(txt)
+      ? { sig, direct:true, levels:[], final:null }
+      : { sig, direct:false, levels:[{ chunks: splitText(txt, SM_CHUNK).map(c => ({ src:c.text, out:null })) }], final:null };
+    $('#smOut').value = '';
+  } else if(smState.final !== null){ smState.final = null; }      // همان خلاصه‌های قطعه‌ها، فقط مرحله‌ی نهایی با سبک فعلی
+  const estLeft = smState.direct ? estTok(txt) + 1650 : smState.levels[0].chunks.filter(c => c.out === null).reduce((a, c) => a + estTok(c.src) + 800, 0) + 6000, quotaLeft = Math.max(0, trCfg.tpd - usedToday());
+  if(estLeft > quotaLeft && !confirm('برآورد مصرف این کار حدود ' + fmtNum(estLeft) + ' توکن است، ولی طبق ثبت این مرورگر حدود ' + fmtNum(quotaLeft) + ' توکن از سهمیه‌ی روزانه باقی مانده. ممکن است وسط کار به سقف برسید (پیشرفت حفظ می‌شود). ادامه می‌دهید؟')){ smRefreshBtn(); return; }
+  smRunning = true; smAbort = new AbortController(); smStats.durs = []; smStats.reqs = []; smRefreshBtn();
+  const signal = smAbort.signal;
+  let ok = false;
   try{
-    const out = await groqRequest([
-      {role:'system', content:'تو متخصص خلاصه‌سازی هستی. متن را به فارسی و به سبک «' + $('#smLen').value + '» خلاصه کن. دقیق و منسجم باش.'},
-      {role:'user', content:txt}
-    ], {temperature:0.4});
-    $('#smOut').value = out; prog.finish(); showToast('خلاصه آماده شد ✅','ok');
-  }catch(err){ prog.fail(); showToast(err.message,'err'); }
-  btn.disabled = false; btn.textContent = 'خلاصه کن';
+    if(smState.direct){
+      smLabel = 'در حال خلاصه‌سازی'; setSmStatus(smLabel); setSmProg(10);
+      smState.final = await smFinal(txt, signal, false);
+    }else{
+      for(;;){
+        const li = smState.levels.length - 1, lv = smState.levels[li], n = lv.chunks.length;
+        for(let i = 0; i < n; i++){
+          const c = lv.chunks[i]; if(c.out !== null) continue;
+          smLabel = smEtaLabel('مرحله ' + faNum(li + 1) + ' — خلاصه‌ی قطعه ' + faNum(i + 1) + ' از ' + faNum(n), n - smLevelDone(lv) + 1);
+          setSmStatus(smLabel);
+          c.out = await smMap(c.src, signal, 0);
+          setSmProg(li === 0 ? 85 * smLevelDone(lv) / n : Math.min(94, 86 + li * 3));
+        }
+        const joined = lv.chunks.map(c => c.out).join('\n\n');
+        const next = smDirect(joined) ? null : splitText(joined, SM_CHUNK);
+        if(!next || next.length >= n || smState.levels.length >= SM_MAX_LEVELS){
+          smLabel = 'مرحله‌ی نهایی — یکی‌کردن خلاصه‌ها'; setSmStatus(smLabel); setSmProg(96);
+          smState.final = await smFinal(joined, signal, true);
+          break;
+        }
+        smState.levels.push({ chunks: next.map(c => ({ src:c.text, out:null })) });
+      }
+    }
+    $('#smOut').value = smState.final; ok = true;
+  }catch(err){
+    const done = smState.levels.reduce((a, l) => a + smLevelDone(l), 0), tot = smState.levels.reduce((a, l) => a + l.chunks.length, 0);
+    const prog = tot ? ' — ' + faNum(done) + ' از ' + faNum(tot) + ' قطعه خلاصه شده؛ «ادامه خلاصه‌سازی» از همین‌جا ادامه می‌دهد.' : '';
+    if(err.name === 'AbortError'){ setSmStatus('⏹ متوقف شد' + prog); showToast('خلاصه‌سازی متوقف شد؛ پیشرفت حفظ شد.','warn'); }
+    else { setSmStatus('⚠️ ' + err.message + prog); showToast(err.message,'err'); }
+  }
+  smRunning = false; smAbort = null;
+  if(ok){ setSmProg(100); setSmStatus('✅ خلاصه آماده شد'); showToast('خلاصه آماده شد ✅','ok'); setTimeout(() => { if(!smRunning) $('#smProg').classList.add('hidden'); }, 1500); }
+  smRefreshBtn();
 });
 $('#smCopy').addEventListener('click', () => $('#smOut').value && copyText($('#smOut').value));
 $('#smDl').addEventListener('click', () => {
   if(!$('#smOut').value){ showToast('چیزی برای دانلود نیست.','warn'); return; }
-  downloadText('summary.txt', $('#smOut').value); showToast('فایل دانلود شد ⬇','ok');
+  downloadText(smFileBase ? smFileBase + '-summary.txt' : 'summary.txt', $('#smOut').value); showToast('فایل دانلود شد ⬇','ok');
 });
 
 /* ═══════════ چت ═══════════ */
