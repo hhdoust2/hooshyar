@@ -773,7 +773,25 @@ async function readPdf(file, onProg){
   if(!loadedAny) throw new Error('کتابخانه‌ی خواندن PDF بارگذاری نشد. فایل‌های pdf.js را در پوشه‌ی vendor/ کنار index.html بگذارید (راهنما: vendor/README.txt)، یا دسترسی به cdn.jsdelivr.net را بررسی کنید. (فایل متنی .txt همچنان کار می‌کند.)');
   throw new Error('خواندن PDF ناموفق بود: ' + ((lastErr && lastErr.message) || lastErr));
 }
+/* اصلاح متن فارسی/عربیِ ذخیره‌شده با «فرم نمایشی» (Presentation Forms) در PDFهای قدیمی:
+   فقط نویسه‌های این بازه‌ها به حرف اصلی تبدیل می‌شوند (NFKC)؛ بقیه‌ی متن دست نمی‌خورد.
+   اگر متن فارسی بود، «ي ى ك» عربی هم به «ی ک» فارسی تبدیل می‌شود. */
+const PRES_FORMS = /[\uFB50-\uFDFF\uFE70-\uFEFF]/g;
+let lastFixedForms = 0;
+function fixPersianText(t){
+  let n = 0;
+  let out = t.replace(PRES_FORMS, ch => { n++; return ch.normalize('NFKC'); });
+  if(n){
+    out = out.replace(/ ([\u064B-\u065F])/g, '$1');                                   // علامت‌های اعراب مجزا
+    if(/[پچژگ]/.test(out)) out = out.replace(/[\u064A\u0649]/g, '\u06CC').replace(/\u0643/g, '\u06A9');
+  }
+  lastFixedForms = n;
+  return out;
+}
 async function readFileText(file, onProg){
+  return fixPersianText(await readFileRaw(file, onProg));
+}
+async function readFileRaw(file, onProg){
   const name = file.name.toLowerCase();
   if(file.size > 60 * 1024 * 1024) throw new Error('حجم فایل بیش از ۶۰ مگابایت است.');
   if(name.endsWith('.docx')){
@@ -794,7 +812,7 @@ $('#trFile').addEventListener('change', async e => {
     setTrStatus('📂 در حال خواندن «' + f.name + '»…');
     const t = await readFileText(f, setTrStatus);
     $('#trSrc').value = t; trFileBase = f.name.replace(/\.[^.]+$/, ''); updTrCount(); setTrStatus('');
-    showToast('فایل «' + f.name + '» بارگذاری شد 📂 (' + faNum(t.length) + ' نویسه)','ok');
+    showToast('فایل «' + f.name + '» بارگذاری شد 📂 (' + faNum(t.length) + ' نویسه)' + (lastFixedForms ? ' · متن فارسی/عربی اصلاح شد ✅' : ''),'ok');
   }catch(err){ setTrStatus(''); showToast(err.message,'err'); }
 });
 /* ── موتور ترجمه فایل‌های بزرگ: قطعه‌بندی + کنترل RPM + ادامه‌ی کار ── */
@@ -1119,7 +1137,7 @@ $('#smFile').addEventListener('change', async e => {
   try{
     showToast('در حال خواندن «' + f.name + '»…','warn');
     const t = await readFileText(f);
-    $('#smSrc').value = t; updSmCount(); showToast('فایل «' + f.name + '» بارگذاری شد 📂','ok');
+    $('#smSrc').value = t; updSmCount(); showToast('فایل «' + f.name + '» بارگذاری شد 📂' + (lastFixedForms ? ' · متن فارسی/عربی اصلاح شد ✅' : ''),'ok');
   }catch(err){ showToast(err.message,'err'); }
 });
 const updSmCount = () => $('#smCount').textContent = faNum($('#smSrc').value.length) + ' نویسه';
