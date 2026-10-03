@@ -176,6 +176,7 @@ select:focus{border-color:var(--or)}
 .tr-grid input{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-family:'JetBrains Mono',monospace;font-size:12.5px;outline:none;direction:ltr;color:var(--ink)}
 .tr-grid input:focus{border-color:var(--or)}
 .tr-check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;cursor:pointer}
+.tr-usage{margin-top:10px;text-align:center;font-size:11.5px;color:var(--mut)}
 .tr-note{margin-top:10px;font-size:11.5px;line-height:1.9}
 .tr-status{margin:0 2px 4px;font-size:12px;color:var(--mut);text-align:center;line-height:1.9}
 .tr-actions{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-top:16px}
@@ -318,11 +319,13 @@ footer a:hover{color:var(--or)}
         <summary>⚙️ تنظیمات ترجمه فایل‌های بزرگ</summary>
         <div class="tr-grid">
           <label>RPM مدل (درخواست در دقیقه)<input type="number" id="trRpm" min="1" max="1000"></label>
+          <label>TPM مدل (توکن در دقیقه)<input type="number" id="trTpm" min="1000" step="500"></label>
+          <label>TPD مدل (توکن در روز)<input type="number" id="trTpd" min="10000" step="10000"></label>
           <label>اندازه هر قطعه (نویسه)<input type="number" id="trChunk" min="500" max="20000" step="500"></label>
           <label>تعداد تلاش مجدد هنگام خطا<input type="number" id="trRetries" min="0" max="10"></label>
         </div>
         <label class="tr-check"><input type="checkbox" id="trPersist"> ذخیره‌ی پیشرفت ترجمه در همین مرورگر (برای ادامه بعد از بستن یا رفرش صفحه)</label>
-        <p class="tr-note">متن طولانی به قطعه‌های کوچک تقسیم می‌شود و قطعه‌ها یکی‌یکی و با فاصله‌ی مناسب (۶۰ ÷ RPM ثانیه) فرستاده می‌شوند. اگر Groq خطای محدودیت (۴۲۹) بدهد، برنامه خودش صبر می‌کند و دوباره تلاش می‌کند. متن مبدأ و ترجمه‌های انجام‌شده فقط در حافظه‌ی همین مرورگر (IndexedDB) نگه داشته می‌شوند و با «پاک کردن» یا «شروع از اول» حذف می‌شوند.</p>
+        <p class="tr-note">متن طولانی به قطعه‌های کوچک تقسیم می‌شود و قطعه‌ها یکی‌یکی و با فاصله‌ی مناسب (۶۰ ÷ RPM ثانیه) فرستاده می‌شوند. اگر Groq خطای محدودیت (۴۲۹) بدهد، برنامه خودش صبر می‌کند و دوباره تلاش می‌کند. Groq سقف توکن در دقیقه را روی مقدار «max_tokens» اعلام‌شده حساب می‌کند، بنابراین برنامه برای هر قطعه سقف خروجی را کوچک نگه می‌دارد و سهم توکن را پیگیری می‌کند. مقدار دقیق RPM/TPM/TPD مدل خود را از بخش Limits در console.groq.com ببینید. متن مبدأ و ترجمه‌های انجام‌شده فقط در حافظه‌ی همین مرورگر (IndexedDB) نگه داشته می‌شوند و با «پاک کردن» یا «شروع از اول» حذف می‌شوند.</p>
       </details>
       <div class="progress hidden" id="trProg"><div class="bar"><i></i></div><span class="pct">0%</span></div>
       <div class="tr-status hidden" id="trStatus"></div>
@@ -331,6 +334,7 @@ footer a:hover{color:var(--or)}
         <button id="trStop" class="ghost-btn hidden">⏹ توقف</button>
         <button id="trReset" class="ghost-btn hidden">↺ شروع از اول</button>
       </div>
+      <div class="tr-usage" id="trUsage"></div>
     </div>
 
     <!-- ══ summarizer ══ -->
@@ -602,7 +606,8 @@ async function groqRequest(messages, opts){
   }
   if(!opts.stream){
     const j = await res.json(), ch = j.choices[0];
-    return opts.full ? { content: ch.message.content || '', finish: ch.finish_reason } : ch.message.content;
+    recordUsage(j.usage);
+    return opts.full ? { content: ch.message.content || '', finish: ch.finish_reason, headers: res.headers } : ch.message.content;
   }
   const reader = res.body.getReader(), dec = new TextDecoder();
   let buf = '', full = '';
@@ -663,10 +668,10 @@ $('#trFile').addEventListener('change', e => {
   const rd = new FileReader(); rd.onload = () => { $('#trSrc').value = rd.result; updTrCount(); showToast('فایل «' + f.name + '» بارگذاری شد 📂','ok'); }; rd.readAsText(f); e.target.value = '';
 });
 /* ── موتور ترجمه فایل‌های بزرگ: قطعه‌بندی + کنترل RPM + ادامه‌ی کار ── */
-const LS_TR = 'gy_tr_cfg_v1';
-const trCfg = { rpm:10, chunk:4000, retries:4, persist:true };
+const LS_TR = 'gy_tr_cfg_v2';
+const trCfg = { rpm:30, chunk:1500, retries:4, persist:true, tpm:8000, tpd:200000 };
 try { Object.assign(trCfg, JSON.parse(localStorage.getItem(LS_TR) || '{}')); } catch(e){}
-[['trRpm','rpm',1,1000],['trChunk','chunk',500,20000],['trRetries','retries',0,10]].forEach(([id,k,lo,hi]) => {
+[['trRpm','rpm',1,1000],['trTpm','tpm',1000,10000000],['trTpd','tpd',10000,1000000000],['trChunk','chunk',500,20000],['trRetries','retries',0,10]].forEach(([id,k,lo,hi]) => {
   const el = $('#' + id); el.value = trCfg[k];
   el.addEventListener('change', () => {
     const v = Math.round(Number(el.value));
@@ -746,6 +751,25 @@ async function trRestore(){
   }catch(e){}
 }
 
+/* تخمین توکن و ثبت مصرف ۲۴ ساعت اخیر (فقط از همین مرورگر و همین برنامه) */
+const estTok = t => { let na = 0; for(let i = 0; i < t.length; i++) if(t.charCodeAt(i) > 127) na++; return Math.ceil((t.length - na) / 3.5 + na / 1.6); };
+const trEstTokens = src => 200 + estTok(src) + Math.ceil(src.length * 0.6);
+const fmtNum = n => faNum(Math.round(n).toLocaleString('en-US').replace(/,/g, '٬'));
+const LS_USE = 'gy_use_v1';
+function useLoad(){ try { const cut = Date.now() - 864e5; return JSON.parse(localStorage.getItem(LS_USE) || '[]').filter(x => x[0] > cut); } catch(e){ return []; } }
+const usedToday = () => useLoad().reduce((a, x) => a + x[1], 0);
+function recordUsage(u){
+  if(!u || !u.total_tokens) return;
+  const a = useLoad(); a.push([Date.now(), u.total_tokens]);
+  try { localStorage.setItem(LS_USE, JSON.stringify(a.slice(-3000))); } catch(e){}
+  renderUsage();
+}
+function renderUsage(){
+  const el = $('#trUsage'); if(!el) return;
+  const u = usedToday(), pct = Math.min(100, Math.round(u / trCfg.tpd * 100));
+  el.textContent = '📊 مصرف ۲۴ ساعت اخیر در این مرورگر: ' + fmtNum(u) + ' از ' + fmtNum(trCfg.tpd) + ' توکن (' + faNum(pct) + '٪) — مصرف خارج از این برنامه یا کلیدهای دیگر شمرده نمی‌شود';
+}
+
 /* تقسیم متن به قطعه‌های ≤ max نویسه، بدون شکستن وسط پاراگراف/جمله (مگر ناچار) */
 function splitText(text, max){
   text = text.replace(/\r\n?/g, '\n').trim();
@@ -795,7 +819,7 @@ function sleep(ms, signal, onTick){
 }
 const fmtDur = ms => { const s = Math.max(1, Math.round(ms/1000)); return s < 60 ? faNum(s) + ' ثانیه' : faNum(Math.floor(s/60)) + ' دقیقه و ' + faNum(s % 60) + ' ثانیه'; };
 
-let trState = null, trAbort = null, trRunning = false, trLastReq = 0, trLabel = '', trDurs = [];
+let trState = null, trAbort = null, trRunning = false, trLastReq = 0, trLabel = '', trDurs = [], trReqs = [];
 const trSig = () => [$('#srcLang').value, $('#tgtLang').value, $('#trSrc').value.trim()].join('\u0001');
 const trDone = () => trState ? trState.chunks.filter(c => c.out !== null).length : 0;
 const setTrStatus = t => { const el = $('#trStatus'); el.textContent = t; el.classList.toggle('hidden', !t); };
@@ -820,8 +844,9 @@ function trRefreshBtn(){
   else go.textContent = 'ترجمه کن';
 }
 const updTrCount = () => {
-  const t = $('#trSrc').value, n = t.trim() ? splitText(t, trCfg.chunk).length : 0;
-  $('#trCount').textContent = faNum(t.length) + ' نویسه' + (n > 1 ? ' · حدود ' + faNum(n) + ' قطعه' : '');
+  const t = $('#trSrc').value, parts = t.trim() ? splitText(t, trCfg.chunk) : [], n = parts.length;
+  const est = parts.reduce((a, c) => a + trEstTokens(c.text), 0);
+  $('#trCount').textContent = faNum(t.length) + ' نویسه' + (n > 0 ? ' · حدود ' + faNum(n) + ' قطعه · برآورد مصرف ≈ ' + fmtNum(est) + ' توکن' : '');
   trRefreshBtn();
 };
 $('#trSrc').addEventListener('input', updTrCount);
@@ -841,6 +866,29 @@ async function trPace(signal){
   if(wait > 0) await sleep(wait, signal, left => setTrStatus(trLabel + ' · انتظار برای رعایت RPM: ' + faNum(Math.ceil(left/1000)) + ' ثانیه'));
   trLastReq = Date.now();
 }
+
+/* سهم توکن در دقیقه (TPM): پنجره‌ی ۶۰ ثانیه‌ای؛ هر درخواست به اندازه‌ی «ورودی + max_tokens» حساب می‌شود،
+   و اگر هدر x-ratelimit-remaining-tokens نشان دهد Groq مصرف بیشتری می‌بیند، همان لحاظ می‌شود (هرگز خوش‌بینانه‌تر نمی‌شود) */
+let trLedger = [];
+const trUsedNow = now => { trLedger = trLedger.filter(e => now - e.t < 60000); return trLedger.reduce((a, e) => a + e.n, 0); };
+async function trTpmWait(R, signal){
+  const limit = trCfg.tpm * 0.95, need = Math.min(R, limit);
+  for(;;){
+    const now = Date.now(), used = trUsedNow(now);
+    if(used + need <= limit) return;
+    let free = used, wait = 0;
+    for(const e of trLedger){ free -= e.n; wait = e.t + 60000 - now; if(free + need <= limit) break; }
+    await sleep(wait + 300, signal, left => setTrStatus(trLabel + ' · انتظار برای سهم توکن در دقیقه (TPM): ' + faNum(Math.ceil(left/1000)) + ' ثانیه'));
+  }
+}
+const trCharge = R => { const e = { t:Date.now(), n:R }; trLedger.push(e); return e; };
+function trHeaderSync(h){
+  const rem = parseFloat(h && h.get && h.get('x-ratelimit-remaining-tokens'));
+  if(isNaN(rem)) return;
+  const now = Date.now(), avail = trCfg.tpm - trUsedNow(now);
+  if(rem < avail - 50) trLedger.push({ t:now, n:avail - rem });
+}
+
 const cleanTr = t => String(t || '').replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/<context>[\s\S]*?<\/context>/gi, '').replace(/<\/?text>/gi, '').trim();
 const tailCtx = s => { let t = s.slice(-400); if(s.length > 400) t = t.replace(/^\S*\s/, ''); return t; };
 
@@ -848,7 +896,9 @@ async function trCall(text, prevCtx, signal, depth){
   const srcN = $('#srcLang').selectedOptions[0].textContent, tgtN = $('#tgtLang').selectedOptions[0].textContent;
   const sys = 'تو یک مترجم حرفه‌ای هستی. متنِ داخل تگ <text> را از «' + srcN + '» به «' + tgtN + '» ترجمه کن. تمام متن را کامل ترجمه کن؛ چیزی را حذف یا خلاصه نکن و توضیح نیاور. قالب‌بندی، شماره‌گذاری، علائم و خط‌های خالی را حفظ کن. اگر تگ <context> وجود داشت، فقط برای پیوستگی و یکدستی اصطلاحات است و نباید ترجمه‌اش کنی. فقط ترجمه را بدون هیچ تگی برگردان.';
   const user = (prevCtx ? '<context>' + prevCtx + '</context>\n' : '') + '<text>\n' + text + '\n</text>';
-  const maxTok = Math.min(8192, Math.max(1024, Math.ceil(text.length * 1.3) + 1200));
+  // سقف خروجی کوچک و متناسب با قطعه (Groq همین مقدار را از TPM کم می‌کند)
+  const maxTok = Math.min(4096, Math.max(600, Math.ceil(text.length * 0.8) + 500));
+  const R = estTok(sys) + estTok(user) + maxTok;
   const canSplit = depth < 3 && text.length > 300;
   const split = async () => {
     const parts = splitText(text, Math.floor(text.length / 2) + 50);
@@ -857,12 +907,15 @@ async function trCall(text, prevCtx, signal, depth){
     for(const p of parts){ const r = await trCall(p.text, ctx, signal, depth + 1); out += (out ? p.sep : '') + r; ctx = tailCtx(p.text); }
     return out;
   };
+  if(R > trCfg.tpm * 0.95 && canSplit) return await split();
   for(let attempt = 0; ; attempt++){
     await trPace(signal);
-    const t0 = Date.now();
+    await trTpmWait(R, signal);
+    trLastReq = Date.now();
+    const entry = trCharge(R), t0 = Date.now();
     try{
       const r = await groqRequest([{role:'system', content:sys},{role:'user', content:user}], { temperature:0.2, max_tokens:maxTok, full:true, signal, reasoning:'low' });
-      trDurs.push(Date.now() - t0);
+      trDurs.push(Date.now() - t0); trReqs.push(R); trHeaderSync(r.headers);
       const out = cleanTr(r.content);
       if(r.finish === 'length' || !out){
         if(canSplit) return await split();
@@ -870,12 +923,13 @@ async function trCall(text, prevCtx, signal, depth){
       }
       return out;
     }catch(err){
+      trLedger = trLedger.filter(e => e !== entry);
       if(err.name === 'AbortError') throw err;
       if(err.status === 413 && canSplit) return await split();
       const retryable = err.status === 429 || err.status >= 500 || err.network;
       if(!retryable || attempt >= trCfg.retries) throw err;
       const wait = err.retryAfter || Math.min(60000, 8000 * Math.pow(2, attempt));
-      if(wait > 180000) throw new Error('سقف مصرف (احتمالاً روزانه) پر شده است؛ حدود ' + fmtDur(wait) + ' دیگر دوباره تلاش کنید یا مدل/کلید دیگری انتخاب کنید.');
+      if(wait > 180000) throw new Error('سقف مصرف (احتمالاً روزانه) پر شده است؛ حدود ' + fmtDur(wait) + ' دیگر دوباره تلاش کنید، یا مدل دیگری را انتخاب کنید و «ادامه ترجمه» را بزنید (پیشرفت حفظ شده است).');
       await sleep(wait + 500, signal, left => setTrStatus(trLabel + ' · محدودیت نرخ؛ تلاش مجدد (' + faNum(attempt + 1) + ' از ' + faNum(trCfg.retries) + ') تا ' + faNum(Math.ceil(left/1000)) + ' ثانیه'));
       trLastReq = Date.now();
     }
@@ -894,7 +948,9 @@ $('#trGo').addEventListener('click', async () => {
     await trPersistStart();
   }
   const total = trState.chunks.length;
-  trRunning = true; trAbort = new AbortController(); trDurs = []; trRefreshBtn();
+  const estLeft = trState.chunks.filter(c => c.out === null).reduce((a, c) => a + trEstTokens(c.src), 0), quotaLeft = Math.max(0, trCfg.tpd - usedToday());
+  if(estLeft > quotaLeft && !confirm('برآورد مصرف این کار حدود ' + fmtNum(estLeft) + ' توکن است، ولی طبق ثبت این مرورگر حدود ' + fmtNum(quotaLeft) + ' توکن از سهمیه‌ی روزانه باقی مانده. ممکن است وسط کار به سقف برسید (پیشرفت حفظ می‌شود و بعداً یا با مدل دیگر ادامه می‌دهید). ادامه می‌دهید؟')){ trRefreshBtn(); return; }
+  trRunning = true; trAbort = new AbortController(); trDurs = []; trReqs = []; trRefreshBtn();
   setTrProg(trDone(), total);
   let ok = false;
   try{
@@ -902,7 +958,9 @@ $('#trGo').addEventListener('click', async () => {
       const c = trState.chunks[i]; if(c.out !== null) continue;
       const remain = total - trDone();
       const avg = trDurs.length ? trDurs.reduce((a,b) => a + b, 0) / trDurs.length : 8000;
-      trLabel = 'قطعه ' + faNum(i + 1) + ' از ' + faNum(total) + ' · باقی‌مانده حدود ' + fmtDur(remain * Math.max(60000 / trCfg.rpm * 1.05, avg));
+      const avgR = trReqs.length ? trReqs.reduce((a,b) => a + b, 0) / trReqs.length : 2400;
+      const per = Math.max(60000 / trCfg.rpm * 1.05, avg, avgR * 60000 / (trCfg.tpm * 0.95));
+      trLabel = 'قطعه ' + faNum(i + 1) + ' از ' + faNum(total) + ' · باقی‌مانده حدود ' + fmtDur(remain * per);
       setTrStatus(trLabel);
       c.out = await trCall(c.src, i > 0 ? tailCtx(trState.chunks[i - 1].src) : '', trAbort.signal, 0);
       trPersistOut(i, c.out); renderTrOut(); setTrProg(trDone(), total);
@@ -1054,7 +1112,7 @@ document.addEventListener('keydown', e => { if(e.key === 'Escape') $$('.modal').
 
 /* ═══════════ شروع ═══════════ */
 renderModels(); renderKeySelect(); fillLangs(); renderCats();
-updTrCount(); updSmCount(); updClCount(); trRestore();
+updTrCount(); updSmCount(); updClCount(); renderUsage(); trRestore();
 if(!savedKeys.length) setTimeout(() => showToast('برای شروع، یک کلید رایگان Groq ثبت کنید 🔑','warn'), 800);
 </script>
 </body>
